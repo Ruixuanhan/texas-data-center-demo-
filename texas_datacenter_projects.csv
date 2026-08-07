@@ -1,0 +1,5 @@
+project_name,developer,city,county,latitude,longitude,estimated_mw,stage,power_type,ercot_status,permit_status,latest_signal,source,last_updated
+Project Stargate,Example Developer A,Abilene,Taylor,32.4487,-99.7331,800,Early Stage,Gas + Grid,Potential interconnection,Monitoring,New infrastructure announcement,News / ERCOT,2026-08-07
+Houston AI Campus,Example Developer B,Houston,Harris,29.7604,-95.3698,350,Permitting,Behind-the-meter Gas,Not confirmed,Air permit signal detected,Permit activity detected,TCEQ,2026-08-06
+DFW Compute Center,Example Developer C,Dallas,Dallas,32.7767,-96.797,500,Interconnection,Grid,Interconnection signal found,Unknown,ERCOT queue activity,ERCOT,2026-08-05
+Austin Data Hub,Example Developer D,Austin,Travis,30.2672,-97.7431,200,Construction,Grid + Solar,Connected,Approved,Construction underway,News,2026-08-04
