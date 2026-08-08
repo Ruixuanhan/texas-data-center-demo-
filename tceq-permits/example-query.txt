@@ -1,0 +1,6 @@
+GET https://records.tceq.texas.gov/cs/idcplg?IdcService=TCEQ_PERFORM_SEARCH
+    &xIdcProfile=Record&IsExternalSearch=1&newSearch=true
+    &select0=xRegEntName&input0=Google
+    &select1=xRegEntName&input1=Meta
+    &select2=xRegEntName&input2=Amazon
+    &operator=OR
