@@ -21,13 +21,15 @@ Build an automated, scheduled data collection engine that continuously monitors 
 ## 2. Core Features & User Requirements
 
 1. **User-Settable Timer & Source Cadence Engine:** Configurable periodic execution loop that tracks and respects individual source update cadences (e.g., RSS every 15 mins, press releases hourly, quarterly earnings logs) using `APScheduler`.
-2. **Automated Continuous Ingestion:** Automatically fetches, cleans, and appends new incoming data without overwriting or duplicating existing records.
-3. **Incremental Storage & Deduplication:** Hashes URLs / content IDs to prevent re-processing identical source articles across scheduled runs.
-4. **Contact & Metadata Capture:** Extracts target contact person details including Name, Phone, Email, and source IP/Domain infrastructure metadata.
-5. **Entity Resolution & Shell Company Deduction:** Pattern-matches registered LLCs, SPCs, land contact persons, and parent entities to deduce true ultimate parent companies funding behind secretive power plant projects.
-6. **Source Data Weblink:** Record source weblink or other source data, so user can view source in browser as desired or needed.
-7. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
-8. **No Code Conflicts Guarantee:** Modular architecture separating Ingestion, Parsing, Storage, and Scheduling so team members working on OpenAI prompt pipelines or UI can integrate cleanly via JSONL schemas.
+2. **Configurable County Scope Flag:** CLI argument `--county-scope [top5|top10|all254]` to dynamically toggle county agenda scraping between key energy hubs (Fast mode for hackathon) and all 254 Texas counties (Full statewide mode).
+3. **PDF Document Extraction Pipeline:** Integrated PDF parsing via `pdfplumber` and `pypdf` to process county commissioners' court agendas, RRC docket PDF filings, and municipal zoning attachments.
+4. **Automated Continuous Ingestion:** Automatically fetches, cleans, and appends new incoming data without overwriting or duplicating existing records.
+5. **Incremental Storage & Deduplication:** Hashes URLs / content IDs to prevent re-processing identical source articles across scheduled runs.
+6. **Contact & Metadata Capture:** Extracts target contact person details including Name, Phone, Email, and source IP/Domain infrastructure metadata.
+7. **Entity Resolution & Shell Company Deduction:** Pattern-matches registered LLCs, SPCs, land contact persons, and parent entities to deduce true ultimate parent companies funding behind secretive power plant projects.
+8. **Source Data Weblink:** Record source weblink or other source data, so user can view source in browser as desired or needed.
+9. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
+10. **No Code Conflicts Guarantee:** Modular architecture separating Ingestion, Parsing, Storage, and Scheduling so team members working on OpenAI prompt pipelines or UI can integrate cleanly via JSONL schemas.
 
 ---
 
@@ -44,15 +46,33 @@ Build an automated, scheduled data collection engine that continuously monitors 
 - **Renewable & Hybrid Developers:** NextEra Energy Resources (NEE), AES Corporation (AES), Ormat Technologies (ORA - Geothermal), Plus Power, Invenergy.
 - **Financial & Regulatory Sources:** ERCOT Interconnection Queue announcements, Texas Military Department / PUCT press releases, PR Newswire / BusinessWire filtered feeds.
 
+### C. Ground-Level Early Signals (Local Filings & Permitting)
+- **Railroad Commission of Texas (RRC):**
+  - *Filings Focus:* Oil/Gas pipeline interconnects, casinghead gas/peaker wellhead filings, hydrogen/geothermal injection permits, surface mining reclamation dockets.
+  - *Cadence:* Daily database refresh / Weekly hearings dockets.
+  - *Contact Info:* RRC Main Line: (877) 228-5740 | Docket Services Email: `Hearingsdivision.efile@rrc.texas.gov` | Office: 1701 N. Congress Ave, Austin, TX.
+- **County Commissioners' Court Agendas (Target Texas Energy Counties):**
+  - *Focus Counties:* Harris, Fort Bend, Brazoria, Montgomery, Ector, Midland, Ward, Pecos, Nolan.
+  - *Filings Focus:* Chapter 312 tax abatement agreements, county road access permits, land development variances for utility-scale battery/peaker installations.
+  - *Cadence:* Published weekly on Thursdays by 5:00 PM CST (72-hour notice before Tuesday court sessions under TX Open Meetings Act).
+  - *Contact Info:* County Clerk Offices / Public Notices Portal (e.g., Harris County Clerk: 713-755-6411; Fort Bend County Clerk: 281-341-8685).
+- **Municipal & Authority Permitting (City Planning & Zoning):**
+  - *Filings Focus:* Industrial building permits, electrical tie-in approvals, municipal utility district (MUD) annexation notices, wastewater treatment connection permits.
+  - *Cadence:* Semi-monthly (1st and 3rd weeks) or monthly planning commission agenda releases.
+  - *Contact Info:* Local City Development Services / Planning & Zoning Departments.
+
 ---
 
 
 
-### C. Cadence & Dynamic Frequency Tracking
-- **PR Newswire / BusinessWire RSS:** Update Cadence: ~15-30 minutes.
-- **OEM Press Rooms (GE Vernova, Siemens):** Update Cadence: Hourly / Daily.
-- **SEC / Earnings Call Transcripts:** Update Cadence: On release / Daily sweep.
-- **PUCT / ERCOT Interconnection Queue Filings:** Update Cadence: Daily / Weekly queue snapshots.
+### D. Cadence & Dynamic Frequency Tracking Matrix
+- **PR Newswire / BusinessWire RSS:** Update Cadence: Every 15-30 minutes.
+- **OEM Press Rooms (GE Vernova, Siemens, Mitsubishi):** Update Cadence: Every 1-6 hours.
+- **SEC / Earnings Call Transcripts:** Update Cadence: Daily sweep (peak earnings season: twice daily).
+- **PUCT / ERCOT Interconnection Queue Filings:** Update Cadence: Weekly (every Friday afternoon).
+- **Railroad Commission of Texas (RRC) Filings:** Update Cadence: Daily sweep (5:00 PM CST post-business marker).
+- **County Commissioners' Agendas:** Update Cadence: Weekly (Thursday evening 5:00 PM CST sweep).
+- **Municipal Development Permitting:** Update Cadence: Bi-weekly / Monthly (scheduled per city meeting calendar).
 - **Scheduler Logic:** Dynamic cadence module polls each registered source according to its specific recorded update cadence rather than a single monolithic timer.
 
 ## 4. Technical Stack & Modular Architecture
@@ -83,6 +103,8 @@ Build an automated, scheduled data collection engine that continuously monitors 
   pydantic-settings==2.2.1
   sqlite-utils==3.36
   rich==13.7.1
+  pdfplumber==0.11.0
+  pypdf==4.1.0
   ```
 - [ ] Define SQLite database schema (`data/power_plants.db`) using two tables:
   1. `sources`: Logs raw ingested HTML/RSS articles, URL hash, timestamp, and scrape status.
@@ -132,7 +154,17 @@ Build an automated, scheduled data collection engine that continuously monitors 
   "raw_text_summary": "Vistra Corp announced order for three GE Vernova gas turbines to support industrial grid growth in West Texas...",
   "source_data_weblink": "https://www.businesswire.com/news/home/20260115005123/en/",
   "source_ip_address": "192.0.2.45",
-  "data_source_cadence": "30_minutes",
+  "data_source_cadence": "weekly_thursday_5pm",
+  "ground_level_signal": {
+    "jurisdiction_type": "County Commissioners' Court / RRC",
+    "governing_body": "Ward County Commissioners' Court",
+    "filing_type": "Chapter 312 Tax Abatement & County Road Permit Application",
+    "official_contact": {
+      "office": "County Clerk / Docket Services",
+      "phone": "+1-432-555-0144",
+      "email": "docket@co.ward.tx.us"
+    }
+  },
   "contact_persons": [
     {
       "name": "Jane Doe",
@@ -179,7 +211,10 @@ Please implement the Texas Power Plant Intelligence Data Collector tool in Pytho
    - Continuous background running mode that executes collection on schedule.
    - Deduplication: Maintain an SQLite database (`data/collector.db`) tracking hashed article URLs. Never append duplicate records.
    - Outputs: Append newly collected data into `output/power_plants_feed.jsonl` and auto-generate an updated `output/digest.md`.
-   - Source Cadence: Support per-source scheduled intervals (e.g., RSS 15m, Earnings 24h) and record source update cadences dynamically.
+   - Dynamic County Scope: Add `--county-scope [top5|all254]` CLI argument. Defaults to `top5` (Harris, Midland, Ector, Ward, Brazoria) for rapid demo execution during hackathon; switches to `all254` for comprehensive statewide polling.
+   - PDF Extraction: Integrate `pdfplumber` and `pypdf` in `utils/parser.py` to extract text from downloadable PDF agenda packets and RRC hearing dockets.
+   - Source Cadence: Support per-source scheduled intervals (e.g., RSS 15m, RRC Filings 24h, County Agendas weekly Thursday 5pm) and record source update cadences dynamically.
+   - Ground-Level Early Signals: Scrape and parse early regulatory indicators from Railroad Commission of Texas (RRC CASES), County Commissioners' Court agendas (Chapter 312 tax abatements), and municipal permitting.
    - Contact & Shell Company Deduction: Parse contact person details (Name, Phone, Email, IP address) and implement parent-entity deduction to link shell LLCs to ultimate funding companies.
    - Weblinks & Metadata: Include `source_data_weblink` and server/source IP metadata in all exported records.
    - Keyword Filters: Focus on Texas power plant developments across Petroleum/Gas, Solar+BESS, Geothermal, Wind, and Peakers. Companies: Vistra, NRG, CenterPoint, Constellation, GE Vernova, Siemens Energy, Mitsubishi, Entergy.
