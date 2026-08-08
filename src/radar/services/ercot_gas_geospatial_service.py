@@ -25,7 +25,7 @@ from radar.intelligence.stage_rules import infer_ercot_stage
 from radar.services.ercot_gis_service import ERCOT_PRODUCT_URL, WORKBOOK_AS_OF
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_ERCOT_GAS_CSV = PROJECT_ROOT / "ercot_gis_gas_projects_july_2026.csv"
+DEFAULT_ERCOT_GAS_CSV = PROJECT_ROOT / "data" / "real" / "ercot_gis_gas_projects_july_2026.csv"
 ERCOT_GAS_SOURCE = "ERCOT GIS Gas Projects"
 PARSER_VERSION = "ercot-gis-gas-geospatial-csv-1.0"
 

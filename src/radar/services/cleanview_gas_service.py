@@ -21,7 +21,7 @@ from radar.intelligence.stage_rules import infer_stage
 from radar.services.ingestion_service import _content_hash, _nullable_float, _nullable_string, refresh_match_candidates
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_GAS_SOURCE_CSV = PROJECT_ROOT / "cleanview_gas_plants.csv"
+DEFAULT_GAS_SOURCE_CSV = PROJECT_ROOT / "data" / "real" / "cleanview_gas_plants.csv"
 PARSER_VERSION = "cleanview-gas-csv-1.0"
 SOURCE_NAME = "Cleanview Gas Plants"
 

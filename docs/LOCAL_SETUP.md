@@ -66,17 +66,17 @@ This installs:
 
 ```bash
 cd web
-RADAR_API_UPSTREAM=http://127.0.0.1:8000 npm run dev -- --port 3000
+NEXT_PUBLIC_RADAR_API_URL=http://127.0.0.1:8000 npm run dev -- --port 3000
 ```
 
 **Explanation:**
-- `RADAR_API_UPSTREAM` — Points to your local backend API
+- `NEXT_PUBLIC_RADAR_API_URL` — Points the browser client to your local FastAPI evidence API
 - Frontend available at: **http://localhost:3000**
 - Uses Next.js dev server with hot reload
 
 **Alternative (if using bun):**
 ```bash
-RADAR_API_UPSTREAM=http://127.0.0.1:8000 bun run dev -- --port 3000
+NEXT_PUBLIC_RADAR_API_URL=http://127.0.0.1:8000 bun run dev -- --port 3000
 ```
 
 ## Running Both Services Locally
@@ -92,7 +92,7 @@ PYTHONPATH=src uv run uvicorn radar.api:app --port 8000 --reload
 **Terminal 2 (Frontend):**
 ```bash
 cd /home/qinxuan/personal_proj/texas-data-center-demo-/web
-RADAR_API_UPSTREAM=http://127.0.0.1:8000 npm run dev -- --port 3000
+NEXT_PUBLIC_RADAR_API_URL=http://127.0.0.1:8000 npm run dev -- --port 3000
 ```
 
 ### Option B: Using a Process Manager
@@ -104,7 +104,7 @@ You can use `nohup` to run both in the background:
 nohup bash -c 'cd /home/qinxuan/personal_proj/texas-data-center-demo- && PYTHONPATH=src uv run uvicorn radar.api:app --port 8000' > backend.log 2>&1 &
 
 # Start frontend
-nohup bash -c 'cd /home/qinxuan/personal_proj/texas-data-center-demo-/web && RADAR_API_UPSTREAM=http://127.0.0.1:8000 npm run dev -- --port 3000' > frontend.log 2>&1 &
+nohup bash -c 'cd /home/qinxuan/personal_proj/texas-data-center-demo-/web && NEXT_PUBLIC_RADAR_API_URL=http://127.0.0.1:8000 npm run dev -- --port 3000' > frontend.log 2>&1 &
 ```
 
 Check logs:
@@ -151,8 +151,8 @@ The MVP ingests four committed source snapshots:
 
 1. **Cleanview Data Centers** — `texas_datacenter_projects.csv`
 2. **ERCOT GIS July 2026** — `data/fixtures/ercot_gis_july_2026.xlsx`
-3. **Cleanview Planned Gas** — `cleanview_gas_plants.csv`
-4. **ERCOT Gas Geospatial Supplement** — `ercot_gis_gas_projects_july_2026.csv`; its 130 records attach only to uniquely exact-matched canonical ERCOT GIS projects and contribute coordinates, projected COD, and retained evidence without creating duplicates.
+3. **Cleanview Planned Gas** — `data/real/cleanview_gas_plants.csv`
+4. **ERCOT Gas Geospatial Supplement** — `data/real/ercot_gis_gas_projects_july_2026.csv`; its 130 records attach only to uniquely exact-matched canonical ERCOT GIS projects and contribute coordinates, projected COD, and retained evidence without creating duplicates.
 
 Source status and evidence lineage:
 - See [docs/TCEQ_SOURCE_STATUS.md](docs/TCEQ_SOURCE_STATUS.md)
@@ -163,7 +163,7 @@ Source status and evidence lineage:
 | Variable | Purpose | Example |
 | --- | --- | --- |
 | `PYTHONPATH` | Python import path | `src` |
-| `RADAR_API_UPSTREAM` | Frontend API endpoint | `http://127.0.0.1:8000` |
+| `NEXT_PUBLIC_RADAR_API_URL` | Frontend FastAPI evidence endpoint | `http://127.0.0.1:8000` |
 | `DATABASE_URL` | (Optional) PostgreSQL connection | `postgresql://user:pass@host:5432/radar` |
 
 By default, the app uses **SQLite** (`data/project_radar.sqlite3`).
