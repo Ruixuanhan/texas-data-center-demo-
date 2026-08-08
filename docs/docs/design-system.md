@@ -2,7 +2,7 @@
 
 Tokens live in code — `web/DESIGN.md` (Open Design convention) is the source of truth, mirrored as CSS custom properties in `web/app/globals.css` and consumed by Tailwind, the app, and Storybook. Figma sync is a post-demo step (tokens flow code → Figma, not the reverse, during the hackathon).
 
-*This page is finalized after the direction bake-off — the chosen direction's palette, type system, and motion vocabulary land here.*
+**Committed direction (ratified at the taste gate):** textured typographic cartography with an investor lens. Near-black warm theater (`#0a0e13`), hillshade + county hairlines + grain as texture, Fraunces as the editorial display voice, IBM Plex Mono for data, and a single heat ramp (cold steel → ember → white-hot) encoding `0.5·stage-earliness + 0.28·recency + 0.22·MW`. Chromatic baseline: build 1, 7 stories.
 
 ## Principles
 
