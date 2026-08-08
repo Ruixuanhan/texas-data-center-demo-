@@ -2,29 +2,60 @@
 
 /* ——— Token layer (placeholder neutral-dark; overwritten by winning direction) ——— */
 :root {
-  /* Committed direction v2 (la-phase-5 baseline): deep slate-blue world, peach data as
-     lit matter, warm paper text, editorial type. */
-  --bg: #131c28;
-  --bg-raise: #16202d;
-  --bg-panel: #1a2534;
-  --line: rgba(226, 232, 244, 0.1);
-  --line-strong: rgba(226, 232, 244, 0.2);
-  --text: #ece7dd;
-  --text-dim: #a3a49f;
-  --text-faint: #67707c;
+  /* ————— PRIMITIVES — one petrol family stepped in OKLCH (constant hue/chroma, stepped L;
+     Radix 12-step roles; DTCG source of truth in tokens/dataplanner.tokens.json) ————— */
+  --deep-1: oklch(0.27 0.048 230);   /* world: water            */
+  --deep-2: oklch(0.32 0.044 232);   /* world: land / page      */
+  --deep-3: oklch(0.37 0.042 233);   /* chrome surface          */
+  --deep-4: oklch(0.42 0.040 234);   /* overlay surface         */
+  --deep-5: oklch(0.47 0.038 234);   /* hovered surface         */
+  --deep-6: oklch(0.55 0.034 233);   /* subtle border           */
+  --deep-7: oklch(0.63 0.030 232);   /* strong border           */
+  --deep-8: oklch(0.72 0.026 230);   /* muted foreground        */
+  --sand-11: oklch(0.87 0.020 88);   /* secondary text          */
+  --sand-12: oklch(0.955 0.012 92);  /* primary text            */
+  --ember-9: oklch(0.75 0.14 58);    /* solid accent            */
+  --ember-10: oklch(0.69 0.15 55);   /* accent pressed          */
+  --ember-11: oklch(0.85 0.10 68);   /* accent text / liveness  */
+  --red-9: oklch(0.63 0.21 32);      /* stage calls / majors    */
+
+  /* ————— SEMANTICS (Radix roles → product meaning) ————— */
+  --surface-world-water: var(--deep-1);
+  --surface-world-land: var(--deep-2);
+  --surface-chrome: var(--deep-3);
+  --surface-overlay: oklch(0.42 0.040 234 / 0.95);
+  --surface-hover: var(--deep-5);
+  --border-subtle: oklch(0.55 0.034 233 / 0.55);
+  --border-strong: var(--deep-7);
+  --text-primary: var(--sand-12);
+  --text-secondary: var(--sand-11);
+  --text-dim2: oklch(0.78 0.02 90);
+  --text-faint2: oklch(0.87 0.02 88 / 0.55);
+  --accent-solid: var(--ember-9);
+  --accent-text: var(--ember-11);
+
+  /* ————— LEGACY ALIASES (older components keep working, now tonal) ————— */
+  --bg: var(--deep-2);
+  --bg-raise: var(--deep-3);
+  --bg-panel: var(--deep-4);
+  --line: var(--border-subtle);
+  --line-strong: var(--border-strong);
+  --text: var(--text-primary);
+  --text-dim: var(--text-secondary);
+  --text-faint: var(--text-faint2);
   --accent: #f2c49b;
-  --signal-low: #8b93a0;
-  --signal-notable: #ffa163;
-  --signal-major: #ff5d49;
-  --live: #ffd8a8;
-  /* chrome surfaces — paper against the slate world (UI never wears the map's color) */
-  --paper: #ece5d6;
-  --paper-raise: #f3ede1;
-  --ink: #1d232e;
-  --ink-dim: rgba(29, 35, 46, 0.6);
-  --ink-faint: rgba(29, 35, 46, 0.38);
-  --paper-line: rgba(29, 35, 46, 0.14);
-  --ember-ink: #b95f24;
+  --signal-low: var(--deep-8);
+  --signal-notable: var(--accent-solid);
+  --signal-major: var(--red-9);
+  --live: var(--accent-text);
+  --paper: var(--surface-chrome);
+  --paper-raise: var(--surface-hover);
+  --ink: var(--text-primary);
+  --ink-dim: var(--text-secondary);
+  --ink-faint: var(--text-faint2);
+  --paper-line: var(--border-subtle);
+  --ember-ink: var(--accent-text);
+
   --font-ui: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, "SF Mono", Menlo, monospace;
   --rail-w: 380px;

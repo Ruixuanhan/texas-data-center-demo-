@@ -67,7 +67,7 @@ export function ProjectDossier({
   return (
     <section
       ref={secRef}
-      className="absolute inset-y-0 left-0 z-10 flex w-[480px] max-w-full flex-col border-r border-[var(--line)] bg-[var(--bg)]/95 opacity-0 backdrop-blur"
+      className="absolute inset-y-0 left-0 z-10 flex w-[480px] max-w-full flex-col border-r border-[var(--border-subtle)] bg-[var(--surface-overlay)] opacity-0 backdrop-blur"
       aria-label={`Dossier: ${project.name}`}
     >
       <header data-beat className="border-b border-[var(--line)] px-5 py-4">

@@ -21,7 +21,7 @@ export function SignalTicker({
     if (!ref.current || !latest) return;
     const tl = gsap.timeline();
     tl.fromTo(ref.current, { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: "power3.out" })
-      .fromTo(ref.current, { backgroundColor: "#ffd9b8" }, { backgroundColor: "#ece5d6", duration: 1.4, ease: "power2.out", clearProps: "backgroundColor" }, 0);
+      .fromTo(ref.current, { backgroundColor: "rgba(255,154,94,0.38)" }, { backgroundColor: "#33495c", duration: 1.4, ease: "power2.out", clearProps: "backgroundColor" }, 0);
     return () => { tl.kill(); };
   }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

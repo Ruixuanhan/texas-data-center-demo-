@@ -38,7 +38,7 @@ export function HoverCard({ info }: { info: HoverInfo | null }) {
   return (
     <div ref={ref} className="pointer-events-none fixed left-0 top-0 z-30 w-[290px] opacity-0" aria-hidden={!info}>
       {p && (
-        <div className="border border-[var(--line-strong)] bg-[rgba(19,28,40,0.94)] px-4 py-3.5 shadow-[0_18px_50px_rgba(4,8,14,0.55)] backdrop-blur-md">
+        <div className="border border-[var(--border-subtle)] bg-[var(--surface-overlay)] px-4 py-3.5 shadow-[0_14px_40px_rgba(8,16,24,0.45)] backdrop-blur-md">
           <div data-hc className="mb-1 flex items-baseline justify-between gap-3">
             <span className="mono text-[8.5px] uppercase tracking-[0.24em] text-[var(--text-faint)]">
               {p.project_type === "gas_to_power" ? "gas-to-power" : "data center"}

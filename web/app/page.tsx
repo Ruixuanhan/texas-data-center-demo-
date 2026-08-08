@@ -17,7 +17,7 @@ function Kpi({ label, value, unit, hot }: { label: string; value: string | numbe
   const prev = useRef<string | number>(value);
   useEffect(() => {
     if (prev.current !== value && ref.current) {
-      gsap.fromTo(ref.current, { scale: 1.14, color: "#b95f24" }, { scale: 1, duration: 0.7, ease: "power3.out", clearProps: "color" });
+      gsap.fromTo(ref.current, { scale: 1.14, color: "#ffd8a8" }, { scale: 1, duration: 0.7, ease: "power3.out", clearProps: "color" });
     }
     prev.current = value;
   }, [value, hot]);
@@ -81,7 +81,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-col" style={{ height: "100vh" }}>
-      <header ref={headerRef} className="z-20 flex items-end gap-12 bg-[var(--paper)] px-6 pb-3 pt-3 shadow-[0_1px_0_var(--paper-line),0_8px_24px_rgba(10,15,22,0.35)]">
+      <header ref={headerRef} className="z-20 flex items-end gap-12 border-b border-[var(--border-subtle)] bg-[var(--surface-chrome)] px-6 pb-3 pt-3">
         <h1 data-intro className="flex flex-col leading-none">
           {/* wordmark: upright/italic contrast pair + ember full stop — one voice, one gesture */}
           <span className="whitespace-nowrap text-[23px] tracking-tight text-[var(--ink)]" style={{ fontFamily: "var(--font-display), Georgia, serif" }}>
@@ -169,7 +169,7 @@ export default function Home() {
         )}
 
         {latestStageChange && (
-          <div key={latestStageChange.id} className="chyron-enter pointer-events-none absolute right-6 top-4 z-10 max-w-md border-l-2 border-[var(--signal-major)] bg-[rgba(19,28,40,0.9)] px-4 py-2.5 backdrop-blur">
+          <div key={latestStageChange.id} className="chyron-enter pointer-events-none absolute right-6 top-4 z-10 max-w-md border-l-2 border-[var(--signal-major)] bg-[var(--surface-overlay)] px-4 py-2.5 backdrop-blur">
             <p className="mono text-[9px] uppercase tracking-[0.3em] text-[var(--signal-major)]">Stage call</p>
             <p className="mt-0.5 text-[13px] leading-snug text-[var(--text)]">
               {projects.get(latestStageChange.project_id)?.name ?? "Project"} advances to {STAGE_LABELS[latestStageChange.stage]} · confidence {latestStageChange.confidence.toFixed(2)}

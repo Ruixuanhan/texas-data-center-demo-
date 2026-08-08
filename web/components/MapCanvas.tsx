@@ -13,7 +13,7 @@ import { ScatterplotLayer, TextLayer, ArcLayer, PolygonLayer } from "@deck.gl/la
 import type { Project, SourceEvent } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
 import { buildCampus, buildProgressChart, builtOpacity, campusScale, type CampusBlock, type ProgressRung } from "@/lib/campus";
-import { STAGE_COLORS } from "@/lib/theme";
+import { STAGE_COLORS, WORLD } from "@/lib/theme";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
@@ -141,21 +141,21 @@ export function MapCanvas({
     mapRef.current = map;
 
     map.on("load", () => {
-      // ——— world re-ink: dusk chroma — teal water, warm-slate land, sage green space ———
+      // ——— world re-ink from the token scale: petrol steps 1–2, brighter and more chromatic ———
       try {
         for (const layer of map.getStyle().layers ?? []) {
-          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#182230");
-          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#0f2230");
-          else if (layer.type === "fill" && /park|green|wood|grass/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#22332f");
-          else if (layer.type === "fill" && /land|residential/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#26303a");
+          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", WORLD.background);
+          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", WORLD.water);
+          else if (layer.type === "fill" && /park|green|wood|grass/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", WORLD.park);
+          else if (layer.type === "fill" && /land|residential/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", WORLD.land);
           if (layer.type === "line") {
             const road = /road|street|highway|motorway|trunk|primary|secondary|tertiary|minor|path|rail|transit/i.test(layer.id);
             const boundary = /admin|boundary|border/i.test(layer.id);
             if (road) {
               const majorRoad = /motorway|trunk|highway|primary/i.test(layer.id);
-              map.setPaintProperty(layer.id, "line-color", majorRoad ? "rgba(226,234,246,0.34)" : "rgba(226,234,246,0.15)");
+              map.setPaintProperty(layer.id, "line-color", majorRoad ? WORLD.roadMajor : WORLD.roadMinor);
             } else if (boundary) {
-              map.setPaintProperty(layer.id, "line-color", "rgba(226,234,246,0.12)");
+              map.setPaintProperty(layer.id, "line-color", WORLD.boundary);
             }
           }
         }
@@ -176,9 +176,9 @@ export function MapCanvas({
         source: "dem",
         paint: {
           "hillshade-exaggeration": 0.75,
-          "hillshade-shadow-color": "#0c1520",
-          "hillshade-highlight-color": "#46536b",
-          "hillshade-accent-color": "#2a3242",
+          "hillshade-shadow-color": WORLD.hillshadeShadow,
+          "hillshade-highlight-color": WORLD.hillshadeHighlight,
+          "hillshade-accent-color": WORLD.hillshadeAccent,
         },
       });
 
@@ -195,7 +195,7 @@ export function MapCanvas({
         type: "line",
         source: "counties",
         paint: {
-          "line-color": "rgba(226,234,246,0.09)",
+          "line-color": WORLD.countyLine,
           "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 8, 0.9],
         },
       });
@@ -448,7 +448,7 @@ export function MapCanvas({
       }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(120% 95% at 46% 42%, transparent 52%, rgba(8,12,18,0.6) 100%)",
+        background: "radial-gradient(120% 95% at 46% 42%, transparent 55%, rgba(10,18,26,0.42) 100%)",
       }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.05, mixBlendMode: "overlay",

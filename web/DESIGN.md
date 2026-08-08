@@ -25,19 +25,30 @@ Geolava's austere domain credibility.
 
 ## Tokens
 
-### Color
-| Token | Value | Role |
+### Color — tiered token architecture (OKLCH · DTCG · Radix roles)
+
+Source of truth: `tokens/dataplanner.tokens.json` (W3C DTCG Format Module 2025.10 — `$value`/`$type`,
+`{alias}` refs), consumed as CSS custom properties in `app/globals.css` and mirrored to sRGB in
+`lib/theme.ts` (`WORLD`) for MapLibre/GSAP. Three tiers: **primitive → semantic → component.**
+
+**Primitives** — one petrol family stepped in OKLCH (constant hue ≈232 / chroma ≈0.04, stepped
+lightness, per the Evil Martians OKLCH method), warm sand text, ember accent:
+
+| Step | Value | Radix role |
 |---|---|---|
-| `--bg` | `#131c28` | slate-blue ink |
-| `--bg-raise` / `--bg-panel` | `#16202d` / `#1a2534` | overlay inks |
-| `--line` / `--line-strong` | `rgba(226,232,244,.10/.20)` | cool hairlines — never solid borders |
-| `--text` / `--text-dim` / `--text-faint` | `#ece7dd` / `#a3a49f` / `#67707c` | warm paper text ramp |
-| `--accent` | `#f2c49b` | peach — the asset material |
-| `--signal-notable` | `#ffa163` | ember — notable signal |
-| `--signal-major` | `#ff5d49` | stage calls, majors |
-| `--live` | `#ffd8a8` | liveness indicator |
-| heat ramp | `#5c6a79 → #93887e → #f2c49b → #ffa163 → #ffd8a8 → #fff7ea` | `lib/heat.ts` RAMP — money temperature (+0.08 BTM pairing bonus) |
-| stage ramp | `lib/theme.ts` STAGE_COLORS | dossier ladder + badges only |
+| `deep-1 / deep-2` | `oklch(0.27/0.32 · 0.048/0.044 · 230/232)` | world: water / land (app background) |
+| `deep-3` | `oklch(0.37 0.042 233)` | chrome surface — masthead, ticker, legend |
+| `deep-4 / deep-5` | `oklch(0.42/0.47 …)` | overlay surface (hover card, dossier, chyron) / hovered |
+| `deep-6 / deep-7` | `oklch(0.55/0.63 …)` | subtle / strong borders |
+| `deep-8` | `oklch(0.72 0.026 230)` | muted foreground |
+| `sand-11 / sand-12` | `oklch(0.87/0.955 · ~0.02 · 90)` | secondary / primary text |
+| `ember-9/10/11` | `oklch(0.75/0.69/0.85 · 0.14/0.15/0.10 · ~60)` | solid accent / pressed / accent text & liveness |
+| `red-9` | `oklch(0.63 0.21 32)` | stage calls, majors |
+| heat ramp | `#5c6a79 → #93887e → #f2c49b → #ffa163 → #ffd8a8 → #fff7ea` | data marks only (`lib/heat.ts`, +0.08 BTM bonus) |
+
+**The tonal law (learned the hard way):** UI never opposes the map — it is a *lighter tone of the
+same world*. Map = steps 1–2, chrome = step 3, overlays = 4–5, borders 6–7, text = sand, accent =
+ember. No paper-vs-slate contrast slams; hierarchy comes from stepped lightness, not hue warfare.
 
 ### Type
 | Token | Stack | Role |
