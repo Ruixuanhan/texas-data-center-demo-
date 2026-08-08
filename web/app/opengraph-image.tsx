@@ -26,8 +26,10 @@ export default function OgImage() {
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ color: "#e9e4da", fontSize: 120, fontStyle: "italic", fontWeight: 700, lineHeight: 1 }}>
-            Radar<span style={{ color: "#ffb454" }}>/</span>TX
+          <div style={{ display: "flex", color: "#e9e4da", fontSize: 120, fontStyle: "italic", fontWeight: 700, lineHeight: 1 }}>
+            <span>Radar</span>
+            <span style={{ color: "#ffb454" }}>/</span>
+            <span>TX</span>
           </div>
           <div style={{ color: "#9a958a", fontSize: 34, lineHeight: 1.35, maxWidth: 900 }}>
             Every queue filing, permit, docket, and county agenda — one addictive, self-updating map.
