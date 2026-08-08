@@ -96,26 +96,79 @@ def apply_schema(conn: sqlite3.Connection, stage: int, schema_dir: Path) -> None
 
 # ── HTTP ──────────────────────────────────────────────────────────────────────
 
-def build_params(args) -> dict:
-    params = {
-        "IdcService":       "TCEQ_PERFORM_SEARCH",
-        "xIdcProfile":      "Record",
-        "IsExternalSearch": "1",
-        "newSearch":        "true",
-    }
-    for i, (field, value) in enumerate(args.field or []):
-        params[f"select{i}"] = field
-        params[f"input{i}"] = value
-    if len(args.field or []) > 0:
-        params["operator"] = args.operator
-    if args.series:
-        params["xRecordSeries"] = str(args.series)
-    if args.doc_type:
-        params["xInsightDocumentType"] = str(args.doc_type)
-    if args.media is not None:
-        params["xMedia"] = str(args.media)
-    if args.ftx:
-        params["ftx"] = args.ftx
+# Browser-like headers required by the TCEQ server
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+def fetch_access_id() -> str:
+    """
+    Pre-fetch the TCEQ search page to obtain a session accessID.
+    The accessID is embedded in the page HTML as a hidden form field or
+    JavaScript variable.  Returns an empty string if not found.
+    """
+    url = BASE_URL + "?IdcService=TCEQ_SEARCH&xIdcProfile=Record&IsExternalSearch=1"
+    if _verbose:
+        print(f"Pre-fetch accessID: GET {url}", file=sys.stderr)
+    try:
+        req = urllib.request.Request(url, headers=_HEADERS)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        # Look for accessID in a hidden input or JS variable
+        for pat in (
+            r'name=["\']accessID["\'][^>]*value=["\'](\d+)["\']',
+            r'value=["\'](\d+)["\'][^>]*name=["\']accessID["\']',
+            r'["\']accessID["\']\s*[,:]\s*["\']?(\d+)',
+            r'accessID=(\d+)',
+        ):
+            m = re.search(pat, html, re.I)
+            if m:
+                access_id = m.group(1)
+                if _verbose:
+                    print(f"Got accessID={access_id}", file=sys.stderr)
+                return access_id
+    except Exception as exc:
+        print(f"Warning: could not pre-fetch accessID: {exc}", file=sys.stderr)
+    return ""
+
+
+def build_params(args, access_id: str = "") -> dict:
+    # Mirror the exact parameter order seen in a successful TCEQ query.
+    # All four select/input slots are always sent; unused slots are empty.
+    fields = args.field or []
+    params: dict = {}
+
+    params["IdcService"]        = "TCEQ_PERFORM_SEARCH"
+    params["clientIP"]          = ""
+    params["xIdcProfile"]       = "Record"
+    params["IsExternalSearch"]  = "1"
+    params["sortSearch"]        = "false"
+    params["newSearch"]         = "true"
+    if access_id:
+        params["accessID"]      = access_id
+    params["xRecordSeries"]         = str(args.series) if args.series else "0"
+    params["xInsightDocumentType"]  = str(args.doc_type) if args.doc_type else "0"
+    params["xMedia"]                = str(args.media) if args.media is not None else "0"
+
+    # Always emit all 4 field slots
+    for i in range(4):
+        if i < len(fields):
+            params[f"select{i}"] = fields[i][0]
+            params[f"input{i}"]  = fields[i][1]
+        else:
+            params[f"select{i}"] = ""
+            params[f"input{i}"]  = ""
+
+    params["operator"] = args.operator
+    params["ftx"]      = args.ftx or ""
+
     return params
 
 
@@ -123,10 +176,7 @@ def fetch_html(params: dict) -> str:
     url = BASE_URL + "?" + urllib.parse.urlencode(params)
     if _verbose:
         print(f"GET {url}", file=sys.stderr)
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "tceq-query/1.0 (research tool)"},
-    )
+    req = urllib.request.Request(url, headers=_HEADERS)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read().decode("utf-8", errors="replace")
 
@@ -446,6 +496,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--ftx", metavar="TEXT",
         help="Full-text search query",
     )
+    p.add_argument(
+        "--access-id", metavar="ID",
+        help=(
+            "TCEQ session accessID token. "
+            "If omitted the script pre-fetches the search page to obtain one automatically."
+        ),
+    )
 
     # Debug / output
     p.add_argument(
@@ -489,8 +546,11 @@ def main() -> None:
 
     schema_dir = Path(args.schema_dir) if args.schema_dir else SCRIPT_DIR
 
+    # ── Obtain accessID ───────────────────────────────────────────────────────
+    access_id = args.access_id or fetch_access_id()
+
     # ── Fetch ─────────────────────────────────────────────────────────────────
-    params = build_params(args)
+    params = build_params(args, access_id)
     try:
         html = fetch_html(params)
     except Exception as exc:
