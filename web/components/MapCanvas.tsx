@@ -15,6 +15,7 @@ import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
 import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PolygonLayer } from "@deck.gl/layers";
 import { ScenegraphLayer } from "@deck.gl/mesh-layers";
 import { GLTFLoader } from "@loaders.gl/gltf";
+import { CollisionFilterExtension } from "@deck.gl/extensions";
 import type { Project, SourceEvent } from "@/lib/types";
 import { STAGE_LADDER } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
@@ -80,17 +81,15 @@ const ARC_TTL = 8000;
 
 // The zoom is an illusion: one fixed diorama scale everywhere — assets and beams keep
 // constant world size, legible at the wide view and simply framed larger on approach.
-const ASSET_SCALE = 95;
-const BEAM_MAX_H = 46000;   // meters at full COD progress
+const ASSET_SCALE = 260;
+const BEAM_MAX_H = 90000;   // meters at full COD progress — always clears the tallest stack
 const BEAM_GLOW_R = 3400;
 const BEAM_CORE_R = 1100;
 const PEACH: [number, number, number] = [242, 196, 155];
-// buildings always read as lit peach matter; heat warms them, never hides them
-const buildingTint = (h: number, selected: boolean): [number, number, number, number] => {
-  const c = heatColor(h);
-  const mix = (i: number) => Math.min(255, Math.round(c[i] * 0.5 + PEACH[i] * 0.5 + (selected ? 26 : 0)));
-  return [mix(0), mix(1), mix(2), 255];
-};
+// buildings are constant light-peach matter (la-phase-5 monomaterial) — heat lives in
+// beams, anchors, and labels, never in the architecture, so buildings always read clean
+const buildingTint = (_h: number, selected: boolean): [number, number, number, number] =>
+  selected ? [255, 236, 210, 255] : [246, 214, 181, 255];
 
 // Progress → the height of the light beam rising from the asset.
 const progressFrac = (p: Project): number => {
@@ -162,7 +161,7 @@ export function MapCanvas({
         const dx = (a.lon! - b.lon!) * 91, dy = (a.lat! - b.lat!) * 110.6;
         nearest = Math.min(nearest, Math.hypot(dx, dy));
       }
-      m.set(a.id, Math.min(1, Math.max(0.5, nearest / 28)));
+      m.set(a.id, Math.min(1, Math.max(0.45, nearest / 28)));
     }
     crowdRef.current = m;
   }, [projects]);
@@ -179,7 +178,7 @@ export function MapCanvas({
       }
       if (mwByCounty.size === 0) return;
       const expr: unknown[] = ["match", ["get", "NAME"]];
-      for (const [county, mw] of mwByCounty) expr.push(county, +(0.035 + Math.min(0.1, (mw / 600) * 0.1)).toFixed(3));
+      for (const [county, mw] of mwByCounty) expr.push(county, +(0.02 + Math.min(0.05, (mw / 900) * 0.05)).toFixed(3));
       expr.push(0);
       map.setPaintProperty("county-heat", "fill-opacity", expr as never);
     };
@@ -291,7 +290,7 @@ export function MapCanvas({
               sizeScale: 1,
               getPosition: ({ p }) => [p.lon!, p.lat!],
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
-              getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
+              getScale: ({ p }) => { const s = sizeOf(p); return [s, s * 0.55, s]; },
               getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
               _lighting: "pbr",
               onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
@@ -308,7 +307,7 @@ export function MapCanvas({
               sizeScale: 1,
               getPosition: ({ p }) => [p.lon!, p.lat!],
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
-              getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
+              getScale: ({ p }) => { const s = sizeOf(p); return [s, s * 0.55, s]; },
               getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
               _lighting: "pbr",
               onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
@@ -396,7 +395,7 @@ export function MapCanvas({
             getPosition: ({ p }) => [p.lon!, p.lat!],
             getElevation: ({ p }) => BEAM_MAX_H * progressFrac(p),
             getFillColor: ({ p, h }) => {
-              const c = p.id === selectedId ? [255, 250, 240] : heatColor(Math.min(1, h + 0.15));
+              const c = p.id === selectedId ? [255, 250, 240] : [255, 238, 210];
               return [c[0], c[1], c[2], p.id === selectedId ? 235 : 165] as never;
             },
             updateTriggers: { getFillColor: [selectedId] },
@@ -451,6 +450,12 @@ export function MapCanvas({
           }),
           new TextLayer({
             id: "project-labels",
+            extensions: [new CollisionFilterExtension()],
+            collisionGroup: "labels",
+            getCollisionPriority: ({ h }: { h: number }) => 60 + Math.round(h * 40),
+            background: true,
+            getBackgroundColor: [13, 19, 27, 225],
+            backgroundPadding: [7, 4, 7, 4],
             data: [
               ...topHot.filter(({ p }) => p.id !== selectedId),
               ...(selectedId
@@ -462,7 +467,7 @@ export function MapCanvas({
                 : []),
             ],
             getPosition: ({ p }) => [p.lon!, p.lat!],
-            getText: ({ p }) => `${p.name.length > 26 ? p.name.slice(0, 24) + "…" : p.name}  ·  ${p.capacity_mw ? Math.round(p.capacity_mw) + " MW" : "— MW"}`,
+            getText: ({ p }) => `${p.name.length > 26 ? p.name.slice(0, 24) + "..." : p.name}${p.capacity_mw ? `  ${Math.round(p.capacity_mw)} MW` : ""}`,
             getSize: 11.5,
             getColor: ({ h }) => [...heatColor(Math.max(h, 0.5)), 240] as never,
             fontFamily: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
