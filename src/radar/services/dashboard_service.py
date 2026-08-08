@@ -11,33 +11,49 @@ from sqlalchemy.orm import Session, joinedload
 
 from radar.data.database import initialize_database, session_scope
 from radar.data.models import IngestionRun, MatchCandidate, Project, ProjectEvent, Signal, SourceDocument
-from radar.services.ingestion_service import DEFAULT_SOURCE_CSV, ingest_cleanview_snapshot
+from radar.services.ercot_gis_service import DEFAULT_ERCOT_WORKBOOK, ingest_ercot_gis
+from radar.services.ingestion_service import DEFAULT_SOURCE_CSV, ingest_cleanview_snapshot, refresh_match_candidates
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
-def ensure_bootstrapped(csv_path: Path = DEFAULT_SOURCE_CSV) -> None:
-    """Initialize the local database and load the committed source snapshot once."""
+def ensure_bootstrapped(
+    csv_path: Path = DEFAULT_SOURCE_CSV,
+    ercot_workbook_path: Path = DEFAULT_ERCOT_WORKBOOK,
+) -> None:
+    """Initialize the local database and load each committed source snapshot once."""
     initialize_database()
     with session_scope() as session:
-        existing_projects = session.scalar(select(func.count(Project.id))) or 0
-        if existing_projects == 0:
+        completed_sources = set(
+            session.scalars(
+                select(IngestionRun.source).where(IngestionRun.status == "success")
+            ).all()
+        )
+        if "Cleanview" not in completed_sources:
             ingest_cleanview_snapshot(session, csv_path)
+        if "ERCOT GIS" not in completed_sources:
+            ingest_ercot_gis(session, ercot_workbook_path)
+        refresh_match_candidates(session)
 
 
-def refresh_snapshot(csv_path: Path = DEFAULT_SOURCE_CSV) -> dict[str, object]:
-    """Run a source snapshot ingestion and return user-facing run health metadata."""
+def refresh_snapshot(
+    csv_path: Path = DEFAULT_SOURCE_CSV,
+    ercot_workbook_path: Path = DEFAULT_ERCOT_WORKBOOK,
+) -> dict[str, object]:
+    """Run each committed source adapter and return combined user-facing health metadata."""
     initialize_database()
     with session_scope() as session:
-        run = ingest_cleanview_snapshot(session, csv_path)
+        cleanview_run = ingest_cleanview_snapshot(session, csv_path)
+        ercot_run = ingest_ercot_gis(session, ercot_workbook_path)
+        refresh_match_candidates(session)
         return {
-            "source": run.source,
-            "status": run.status,
-            "records_seen": run.records_seen,
-            "records_changed": run.records_changed,
-            "completed_at": run.completed_at,
-            "message": run.message,
+            "source": "Cleanview + ERCOT GIS",
+            "status": "success" if cleanview_run.status == ercot_run.status == "success" else "partial_failure",
+            "records_seen": cleanview_run.records_seen + ercot_run.records_seen,
+            "records_changed": cleanview_run.records_changed + ercot_run.records_changed,
+            "completed_at": max(cleanview_run.completed_at, ercot_run.completed_at),
+            "message": f"{cleanview_run.message} {ercot_run.message}",
         }
 
 
@@ -52,6 +68,7 @@ def _as_of_datetime(as_of: date | datetime | None) -> datetime | None:
 def projects_frame(
     selected_stages: list[str] | None = None,
     selected_power_types: list[str] | None = None,
+    selected_sources: list[str] | None = None,
     min_mw: float | None = None,
     as_of: date | datetime | None = None,
 ) -> pd.DataFrame:
@@ -65,6 +82,8 @@ def projects_frame(
             statement = statement.where(Project.radar_stage.in_(selected_stages))
         if selected_power_types:
             statement = statement.where(Project.power_type.in_(selected_power_types))
+        if selected_sources:
+            statement = statement.where(Project.source.in_(selected_sources))
         if min_mw is not None:
             statement = statement.where(Project.estimated_mw >= min_mw)
         projects = list(session.scalars(statement.order_by(Project.project_name)).all())

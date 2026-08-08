@@ -70,3 +70,60 @@ def infer_stage(source_stage: str | None) -> StageAssessment:
         return DEFAULT_ASSESSMENT
     normalized = source_stage.strip().lower()
     return SOURCE_STAGE_RULES.get(normalized, DEFAULT_ASSESSMENT)
+
+
+def infer_ercot_stage(
+    study_phase: str | None,
+    ia_signed: str | None,
+    synchronization_date: object | None,
+) -> StageAssessment:
+    """Translate ERCOT GIS milestones into an explainable development-stage assessment.
+
+    The workbook directly evidences grid interconnection progress. It cannot by itself
+    prove FID or construction, so this rule intentionally stops at the strongest
+    defensible interconnection stage unless synchronization approval is published.
+    """
+    if synchronization_date:
+        return StageAssessment(
+            stage="COD",
+            confidence=0.94,
+            rationale="ERCOT GIS lists approval for synchronization, a strong grid-readiness signal consistent with commercial-operation progress.",
+            rule_version="ercot-gis-rules-1.0",
+        )
+
+    phase = (study_phase or "").strip().lower()
+    signed = (ia_signed or "").strip().lower()
+    if "ia" in phase and "no ia" not in phase:
+        return StageAssessment(
+            stage="Interconnection Agreement",
+            confidence=0.88,
+            rationale="ERCOT GIS shows an interconnection-study phase with an agreement milestone; Radar classifies this as interconnection-agreement stage.",
+            rule_version="ercot-gis-rules-1.0",
+        )
+    if signed == "yes":
+        return StageAssessment(
+            stage="Interconnection Agreement",
+            confidence=0.84,
+            rationale="ERCOT GIS indicates that the interconnection agreement is signed.",
+            rule_version="ercot-gis-rules-1.0",
+        )
+    if "fis" in phase:
+        return StageAssessment(
+            stage="FEL-2 / Pre-FEED",
+            confidence=0.72,
+            rationale="ERCOT GIS shows full-interconnection-study activity, an advanced development signal but not proof of a signed interconnection agreement.",
+            rule_version="ercot-gis-rules-1.0",
+        )
+    if "ss" in phase:
+        return StageAssessment(
+            stage="FEL-1",
+            confidence=0.62,
+            rationale="ERCOT GIS shows screening-study activity, an early interconnection-development signal.",
+            rule_version="ercot-gis-rules-1.0",
+        )
+    return StageAssessment(
+        stage="Concept",
+        confidence=0.48,
+        rationale="The ERCOT GIS record establishes project identity but does not expose enough milestone detail for a stronger stage assessment.",
+        rule_version="ercot-gis-rules-1.0",
+    )

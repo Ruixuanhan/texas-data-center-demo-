@@ -9,7 +9,7 @@ Project Radar is a Python-first, evidence-backed monitoring experience for Texas
 | Capability | MVP implementation |
 | --- | --- |
 | Python data platform | Python 3.12 with SQLAlchemy 2.x stores the operational project/evidence model in a local SQLite database by default. The models are portable to PostgreSQL/PostGIS for deployment. |
-| Source provenance | The committed `texas_datacenter_projects.csv` snapshot is parsed into immutable `source_documents`, normalized `signals`, and `project_events`. The raw payload, source URL, content hash, published date, and parser version are retained. |
+| Source provenance | The committed Cleanview-derived CSV and ERCOT July 2026 GIS workbook are parsed into immutable `source_documents`, normalized `signals`, and `project_events`. Each retains raw payload, source URL, content hash, published date, and parser version. |
 | Stage intelligence | Deterministic rules map source status to an explicit Radar stage and confidence: planned/early-stage → Concept, operating → COD, canceled → Withdrawn. The rationale is displayed in each project story. |
 | Entity-resolution safety | Name, developer, county, capacity, and technology features identify **review candidates**. No fuzzy candidate is automatically merged because the current source snapshot has no shared queue, permit, or facility identifier. |
 | Interactive experience | The Streamlit dashboard includes a dark Texas map, stage/power/capacity filters, time control, source-health status, event feed, project evidence story, and review queue. |
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 PYTHONPATH=src streamlit run app.py
 ```
 
-The first page load initializes `data/project_radar.sqlite3` from the committed CSV. That local database and any unreleased source artifacts are ignored by Git.
+The first page load initializes `data/project_radar.sqlite3` from the committed Cleanview CSV and ERCOT GIS workbook. That local database and any unreleased source artifacts are ignored by Git.
 
 ## Test
 
@@ -63,7 +63,9 @@ The test suite verifies deterministic stage mapping, conservative match-review b
 
 ## Data and provenance boundary
 
-The current user interface is backed by the committed Cleanview-derived Texas data-center snapshot already present in the repository. It does **not** claim to be a continuously fetched ERCOT, TCEQ, PUCT, or FERC feed. Those sources belong behind future source adapters that conform to the same pipeline contract: archive raw artifact, create a source document, extract signals, generate match candidates, apply evidence-bounded stage rules, and record material project events.
+The current UI ingests two committed, versioned public-source snapshots: the Cleanview-derived Texas data-center CSV and the **ERCOT Generator Interconnection Status (GIS) July 2026 workbook**. The ERCOT adapter imports both large- and small-generator project detail tabs, preserves each source row, maps its interconnection milestones to confidence-bounded Radar stages, and creates project events. ERCOT records lacking published project coordinates remain searchable and evidence-linked, but are not shown as map markers.
+
+The repository also contains the merged **TCEQ permit-query template and result schema** under `data/fixtures/tceq/`. That endpoint returned an upstream server-side failure during validation, so TCEQ is explicitly **configured but inactive** rather than misrepresented as a live feed. PUCT, FERC, RRC, county agendas, and press/OEM sources remain future adapters. Every future adapter must follow the same contract: archive the raw artifact, create a source document, extract signals, generate match candidates, apply evidence-bounded stage rules, and record material project events.
 
 The default SQLite data layer is intended for hackathon speed. In deployment, set `DATABASE_URL` to PostgreSQL/PostGIS, move raw artifacts to object storage, and invoke `src/radar/services/ingestion_service.py` from a Python cron/worker. The domain model then supports a durable source-health panel and the same dashboard queries.
 

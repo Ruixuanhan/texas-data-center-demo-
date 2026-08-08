@@ -31,6 +31,9 @@ st.set_page_config(page_title="Project Radar | Texas Energy Intelligence", layou
 
 STAGE_COLORS = {
     "Concept": [240, 178, 41],
+    "FEL-1": [245, 153, 55],
+    "FEL-2 / Pre-FEED": [246, 119, 58],
+    "Interconnection Agreement": [98, 169, 255],
     "Construction": [238, 90, 90],
     "COD": [53, 196, 130],
     "Withdrawn": [130, 142, 160],
@@ -170,7 +173,7 @@ def main() -> None:
         st.markdown("<span class='subtle'>Evidence-backed monitoring for Texas data-center infrastructure and power opportunity.</span>", unsafe_allow_html=True)
     with action_col:
         st.write("")
-        if st.button("Refresh snapshot", use_container_width=True, help="Re-ingest the committed source snapshot and record a health check."):
+        if st.button("Refresh sources", use_container_width=True, help="Re-ingest the committed Cleanview and ERCOT GIS snapshots and record source health."):
             result = refresh_snapshot()
             st.success(f"{result['status'].title()}: {result['message']}")
             st.rerun()
@@ -190,14 +193,22 @@ def main() -> None:
         selected_stages = st.multiselect("Radar stage", stage_options, default=stage_options)
         power_options = sorted(all_projects["power_type"].dropna().unique().tolist()) if not all_projects.empty else []
         selected_power = st.multiselect("Power type", power_options, default=power_options)
+        source_options = sorted(all_projects["source"].dropna().unique().tolist()) if not all_projects.empty else []
+        selected_sources = st.multiselect("Evidence source", source_options, default=source_options)
         capacity_values = all_projects["estimated_mw"].dropna() if not all_projects.empty else pd.Series(dtype=float)
         minimum_mw = float(capacity_values.min()) if not capacity_values.empty else 0.0
         maximum_mw = float(capacity_values.max()) if not capacity_values.empty else 1.0
         selected_mw = st.slider("Minimum estimated MW", min_value=minimum_mw, max_value=max(maximum_mw, minimum_mw + 1), value=minimum_mw)
         st.divider()
-        st.caption("The committed CSV is a source snapshot. Radar retains its evidence, maps source statuses to confidence-bounded stages, and records each ingestion run.")
+        st.caption("Cleanview and ERCOT GIS are versioned source snapshots. Radar retains their evidence, maps source-specific statuses to confidence-bounded stages, and records each ingestion run.")
 
-    frame = projects_frame(selected_stages, selected_power, selected_mw, selected_date)
+    frame = projects_frame(
+        selected_stages=selected_stages,
+        selected_power_types=selected_power,
+        selected_sources=selected_sources,
+        min_mw=selected_mw,
+        as_of=selected_date,
+    )
     events = event_frame(selected_date)
     total_mw = frame["estimated_mw"].sum(skipna=True) if not frame.empty else 0
     concepts = int((frame["radar_stage"] == "Concept").sum()) if not frame.empty else 0
@@ -214,7 +225,7 @@ def main() -> None:
         st.markdown("<div class='eyebrow'>Map intelligence</div>", unsafe_allow_html=True)
         st.subheader(f"Texas project landscape · {selected_date.strftime('%b %d, %Y')}")
         st.pydeck_chart(map_deck(frame), use_container_width=True)
-        st.caption("Marker color: amber = Concept, red = Construction, green = COD, gray = Withdrawn/unknown. Marker size scales with reported MW.")
+        st.caption("Marker color reflects Radar stage. Only sources with published coordinates render as markers; ERCOT GIS records without coordinates remain searchable in the feed and project stories. Marker size scales with reported MW.")
     with feed_col:
         render_feed(events)
 
@@ -244,7 +255,7 @@ def main() -> None:
 
     st.divider()
     st.markdown("#### Pipeline contract")
-    st.caption("Source snapshot → immutable source document → normalized signal → conservative match candidate → stage assessment → map/event projection. The application never presents an inferred stage without retained evidence.")
+    st.caption("Cleanview / ERCOT GIS source snapshots → immutable source documents → normalized signals → conservative match candidates → stage assessments → map/event projection. The application never presents an inferred stage without retained evidence.")
 
 
 if __name__ == "__main__":

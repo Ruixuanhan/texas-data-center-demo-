@@ -60,6 +60,25 @@ def _content_hash(row: dict[str, object]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def refresh_match_candidates(session: Session) -> int:
+    """Rebuild the conservative review queue from all currently ingested sources."""
+    projects = list(session.scalars(select(Project)).all())
+    session.execute(delete(MatchCandidate))
+    candidates = generate_candidates(projects)
+    for candidate in candidates:
+        session.add(
+            MatchCandidate(
+                left_project_id=candidate.left_project_id,
+                right_project_id=candidate.right_project_id,
+                total_score=candidate.total_score,
+                decision=candidate.decision,
+                explanation=candidate.explanation,
+                feature_scores=candidate.feature_scores,
+            )
+        )
+    return len(candidates)
+
+
 def ingest_cleanview_snapshot(session: Session, csv_path: Path = DEFAULT_SOURCE_CSV) -> IngestionRun:
     """Load a CSV snapshot, retain its evidence, and emit only material project events."""
     if not csv_path.exists():
@@ -178,19 +197,7 @@ def ingest_cleanview_snapshot(session: Session, csv_path: Path = DEFAULT_SOURCE_
             )
             changed += 1
 
-    projects = list(session.scalars(select(Project)).all())
-    session.execute(delete(MatchCandidate))
-    for candidate in generate_candidates(projects):
-        session.add(
-            MatchCandidate(
-                left_project_id=candidate.left_project_id,
-                right_project_id=candidate.right_project_id,
-                total_score=candidate.total_score,
-                decision=candidate.decision,
-                explanation=candidate.explanation,
-                feature_scores=candidate.feature_scores,
-            )
-        )
+    refresh_match_candidates(session)
 
     run.status = "success"
     run.completed_at = datetime.now(UTC)
