@@ -60,21 +60,16 @@ VALID_FIELDS = {
     "xSecondaryID": "Secondary ID",
 }
 
-# Label text as it appears in Oracle UCM dataSheet HTML → schema column
-_LABEL_TO_FIELD = {
-    "regulated entity name": "reg_entity_name",
-    "primary id":            "primary_id",
-    "secondary id":          "secondary_id",
-    "central registry rn":   "central_rn",
-    "rn":                    "central_rn",
-    "address":               "address",
-    "in date":               "in_date",
-    "date in":               "in_date",
-    "title":                 "doc_title",
-    "document title":        "doc_title",
-    "document name":         "doc_name",
-    "name":                  "doc_name",
+# xMedia label text → media_id integer
+_MEDIA_LABEL_TO_ID = {
+    "all": 0, "electronic": 1, "fiche": 2,
+    "microfilm": 3, "optical disc": 4, "paper": 5, "tape": 6,
 }
+
+def _media_label_to_id(label: str | None) -> int | None:
+    if not label:
+        return None
+    return _MEDIA_LABEL_TO_ID.get(label.lower().strip())
 
 # ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -210,113 +205,116 @@ def _abs_url(href: str) -> str:
 
 def parse_results_bs4(html: str) -> list[dict]:
     """
-    Parse TCEQ dataSheet results.
+    Parse TCEQ Records Online search results.
 
-    Oracle UCM 11gR1 / TCEQ custom template renders each result as a
-    labeled two-column table.  Each block starts with the doc-name link
-    followed by label→value rows.
-
-    We try three increasingly permissive strategies:
-      1. Rows with class rowEven / rowOdd / searchResult (flat table layout)
-      2. Label-value table blocks (card layout)
-      3. Any link whose href contains dDocName or GET_FILE (fallback)
+    The TCEQ Oracle UCM 11gR1 template renders results in a flat table
+    (<table id="searchResultsTable">) where each document occupies one <tr>.
+    Each row contains:
+      - a <form action="dummy.exe"> with hidden inputs: dDocName, dDocTitle, dID
+      - alternating <td class="xuiListContentCell_Odd|Even"> (data) and
+        <td class="xuiListResizeDragCell_Item"> (resize spacers, skip these)
+    Data cell positions follow the columnsString order:
+      [0]=checkbox  [1]=dDocName  [2]=xRecordSeries  [3]=xPrimaryID
+      [4]=xSecondaryID  [5]=xInsightDocumentType  [6]=dDocTitle
+      [7]=xBeginDate  [8]=xEndDate  [9]=xLitigationHold  [10]=xRegEntName
+      [11]=xMedia  [12]=xComments  [13]=dSecurityGroup  [14]=actions
     """
     soup = BeautifulSoup(html, "html.parser")
     results: list[dict] = []
 
-    # ── Strategy 1: flat row-based table ─────────────────────────────────────
-    rows = soup.find_all("tr", class_=re.compile(
-        r"(row(Even|Odd|Alt)|searchResult|resultRow|dataSheetRow)", re.I
-    ))
-    if rows:
-        for rank, row in enumerate(rows, 1):
-            r = _make_result()
-            r["rank"] = rank
-            cells = row.find_all("td")
-            # First cell with a link → doc_name + content_url
-            for cell in cells:
-                a = cell.find("a", href=True)
-                if a and not a["href"].startswith("javascript"):
-                    r["doc_name"] = a.get_text(strip=True)
-                    r["content_url"] = _abs_url(a["href"])
-                    break
-            # Try to map remaining cells by position (TCEQ column order varies)
-            texts = [c.get_text(" ", strip=True) for c in cells]
-            if len(texts) > 1 and r["doc_title"] is None:
-                r["doc_title"] = texts[1] or None
-            if len(texts) > 2 and r["primary_id"] is None:
-                r["primary_id"] = texts[2] or None
-            if len(texts) > 3 and r["reg_entity_name"] is None:
-                r["reg_entity_name"] = texts[3] or None
-            results.append(r)
-        return results
+    # ── Strategy 1: TCEQ xuiList result table (primary) ──────────────────────
+    # Parse columnsString from the hidden form input to get dynamic column order.
+    col_input = soup.find("input", attrs={"name": "columnsString"})
+    columns = (
+        col_input["value"].split(",")
+        if col_input and col_input.get("value")
+        else [
+            "dDocName", "xRecordSeries", "xPrimaryID", "xSecondaryID",
+            "xInsightDocumentType", "dDocTitle", "xBeginDate", "xEndDate",
+            "xLitigationHold", "xRegEntName", "xMedia", "xComments",
+            "dSecurityGroup",
+        ]
+    )
+    # Data cell index: position 0 = checkbox cell, position 1 = columns[0], etc.
+    col_idx = {col: i + 1 for i, col in enumerate(columns)}
 
-    # ── Strategy 2: label-value card blocks ───────────────────────────────────
-    # Each document is a <table> (or <div>) containing rows of label/value pairs.
-    # Heuristic: find all <a> tags with dDocName in their href as anchors.
-    doc_links = soup.find_all("a", href=re.compile(r"(dDocName|GET_FILE)", re.I))
-    if not doc_links:
-        # Broader: any link inside the page content area
-        doc_links = soup.find_all("a", href=re.compile(r"/cs/", re.I))
+    item_forms = soup.find_all(
+        "form", attrs={"action": re.compile(r"dummy\.exe", re.I)}
+    )
 
-    seen_urls: set[str] = set()
-    for rank, link in enumerate(doc_links, 1):
-        href = link.get("href", "")
-        if href.startswith("javascript"):
-            continue
-        abs_href = _abs_url(href)
-        if abs_href in seen_urls:
-            continue
-        seen_urls.add(abs_href)
-
+    for rank, form in enumerate(item_forms, 1):
         r = _make_result()
         r["rank"] = rank
-        r["doc_name"] = link.get_text(strip=True)
-        r["content_url"] = abs_href
 
-        # Walk up to find the enclosing result container (table or div)
-        container = link.find_parent("table") or link.find_parent("div")
-        if container:
-            # Look for label/value rows within the container
-            label_cells = container.find_all(
-                "td", class_=re.compile(r"label|header|key", re.I)
+        def hval(name: str) -> str | None:
+            inp = form.find("input", attrs={"name": name})
+            return inp["value"].strip() if inp and inp.get("value") else None
+
+        r["doc_name"]  = hval("dDocName")
+        r["doc_title"] = hval("dDocTitle")
+
+        row = form.find_parent("tr")
+        if not row:
+            results.append(r)
+            continue
+
+        # Collect ordered data cells; skip resize/spacer cells
+        data_cells = row.find_all(
+            "td", class_=re.compile(r"xuiListContentCell_(Odd|Even)", re.I)
+        )
+
+        def cell_text(col_name: str) -> str | None:
+            idx = col_idx.get(col_name)
+            if idx is None or idx >= len(data_cells):
+                return None
+            cell = data_cells[idx]
+            # Remove display:none divs (decorative duplicates)
+            for hidden in cell.find_all(
+                "div", style=re.compile(r"display\s*:\s*none", re.I)
+            ):
+                hidden.decompose()
+            # Remove spacer images
+            for img in cell.find_all("img"):
+                img.decompose()
+            return cell.get_text(" ", strip=True) or None
+
+        # content_url from the GET_FILE link in the dDocName column
+        doc_cell_idx = col_idx.get("dDocName", 1)
+        if doc_cell_idx < len(data_cells):
+            a = data_cells[doc_cell_idx].find(
+                "a", href=re.compile(r"EXTERNAL_SEARCH_GET_FILE", re.I)
             )
-            if not label_cells:
-                # Fallback: scan all <tr> rows for 2-cell label/value pattern
-                for tr in container.find_all("tr"):
-                    tds = tr.find_all("td")
-                    if len(tds) == 2:
-                        label = tds[0].get_text(strip=True).rstrip(":").lower()
-                        value = tds[1].get_text(strip=True)
-                        col = _LABEL_TO_FIELD.get(label)
-                        if col and value:
-                            r[col] = value
-            else:
-                for lc in label_cells:
-                    label = lc.get_text(strip=True).rstrip(":").lower()
-                    vc = lc.find_next_sibling("td")
-                    value = vc.get_text(strip=True) if vc else ""
-                    col = _LABEL_TO_FIELD.get(label)
-                    if col and value:
-                        r[col] = value
+            if a:
+                r["content_url"] = _abs_url(a["href"])
+                if not r["doc_name"]:
+                    r["doc_name"] = a.get_text(strip=True)
+
+        r["primary_id"]      = cell_text("xPrimaryID")
+        r["secondary_id"]    = cell_text("xSecondaryID")
+        r["reg_entity_name"] = cell_text("xRegEntName")
+        r["in_date"]         = cell_text("xBeginDate")
+        r["media_id"]        = _media_label_to_id(cell_text("xMedia"))
+        # series_id / doc_type_id: HTML gives text labels; integer IDs
+        # require a stage-2 lookup table; leave NULL here.
 
         results.append(r)
 
     if results:
         return results
 
-    # ── Strategy 3: bare link scrape ─────────────────────────────────────────
-    all_links = soup.find_all("a", href=re.compile(r"https?://", re.I))
+    # ── Strategy 2: bare link scrape (non-TCEQ UCM fallback) ─────────────────
     seen: set[str] = set()
-    for rank, link in enumerate(all_links, 1):
-        href = link["href"]
-        if href in seen:
+    rank = 0
+    for a in soup.find_all("a", href=re.compile(r"EXTERNAL_SEARCH_GET_FILE|dDocName", re.I)):
+        href = a.get("href", "")
+        if href.startswith("javascript") or href in seen:
             continue
         seen.add(href)
+        rank += 1
         r = _make_result()
         r["rank"] = rank
-        r["doc_name"] = link.get_text(strip=True) or href
-        r["content_url"] = href
+        r["doc_name"] = a.get_text(strip=True) or None
+        r["content_url"] = _abs_url(href)
         results.append(r)
 
     return results
@@ -357,7 +355,12 @@ def parse_results(html: str) -> list[dict]:
 
 
 def extract_result_count(html: str) -> int | None:
-    """Best-effort extraction of total result count from HTML."""
+    """
+    Best-effort extraction of total result count from HTML.
+    TCEQ paginates as 'Page N of <pages>' with 20 items/page, so we
+    derive the total from the highest EndRow value in the pagination URLs.
+    """
+    # Generic "N Results Found" pattern
     for pat in (
         r'(\d[\d,]+)\s+(?:Results?|Documents?|Items?)\s+Found',
         r'of\s+(\d[\d,]+)\s+(?:results?|documents?|items?)',
@@ -366,6 +369,12 @@ def extract_result_count(html: str) -> int | None:
         m = re.search(pat, html, re.I)
         if m:
             return int(m.group(1).replace(",", ""))
+
+    # TCEQ pagination: extract highest EndRow from pagination option URLs
+    end_rows = [int(m) for m in re.findall(r"EndRow=(\d+)", html)]
+    if end_rows:
+        return max(end_rows)
+
     return None
 
 # ── Database ──────────────────────────────────────────────────────────────────
