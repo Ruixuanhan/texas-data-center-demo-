@@ -1,0 +1,65 @@
+{
+  "$description": "Data Planner design tokens — DTCG Format Module 2025.10. Primitive → semantic tiers. Primitives are one petrol family stepped in OKLCH (constant hue/chroma, stepped lightness) plus warm sand text and ember accent; roles follow the Radix 12-step convention (1-2 backgrounds, 3-5 surfaces/states, 6-8 borders, 9-10 solids, 11-12 text).",
+  "color": {
+    "$type": "color",
+    "deep": {
+      "1": { "$value": "oklch(0.27 0.048 230)", "$description": "world: water" },
+      "2": { "$value": "oklch(0.32 0.044 232)", "$description": "world: land / page" },
+      "3": { "$value": "oklch(0.37 0.042 233)", "$description": "chrome surface" },
+      "4": { "$value": "oklch(0.42 0.040 234)", "$description": "overlay surface" },
+      "5": { "$value": "oklch(0.47 0.038 234)", "$description": "hovered surface" },
+      "6": { "$value": "oklch(0.55 0.034 233)", "$description": "subtle border" },
+      "7": { "$value": "oklch(0.63 0.030 232)", "$description": "strong border" },
+      "8": { "$value": "oklch(0.72 0.026 230)", "$description": "muted foreground" }
+    },
+    "sand": {
+      "11": { "$value": "oklch(0.87 0.020 88)", "$description": "secondary text" },
+      "12": { "$value": "oklch(0.955 0.012 92)", "$description": "primary text" }
+    },
+    "ember": {
+      "9": { "$value": "oklch(0.75 0.14 58)", "$description": "solid accent" },
+      "10": { "$value": "oklch(0.69 0.15 55)", "$description": "accent pressed" },
+      "11": { "$value": "oklch(0.85 0.10 68)", "$description": "accent text / liveness" }
+    },
+    "red": {
+      "9": { "$value": "oklch(0.63 0.21 32)", "$description": "stage calls / majors" }
+    },
+    "heat": {
+      "$description": "Money-temperature ramp for data marks (lib/heat.ts). Slate → clay → peach → ember → white-hot.",
+      "0": { "$value": "#5c6a79" },
+      "35": { "$value": "#93887e" },
+      "55": { "$value": "#f2c49b" },
+      "72": { "$value": "#ffa163" },
+      "88": { "$value": "#ffd8a8" },
+      "100": { "$value": "#fff7ea" }
+    }
+  },
+  "semantic": {
+    "$type": "color",
+    "surface": {
+      "world-water": { "$value": "{color.deep.1}" },
+      "world-land": { "$value": "{color.deep.2}" },
+      "chrome": { "$value": "{color.deep.3}", "$description": "masthead, ticker, legend — a lighter tone of the world, never a different world" },
+      "overlay": { "$value": "{color.deep.4}", "$description": "hover card, dossier, chyron (95% alpha at point of use)" },
+      "hover": { "$value": "{color.deep.5}" }
+    },
+    "border": {
+      "subtle": { "$value": "{color.deep.6}" },
+      "strong": { "$value": "{color.deep.7}" }
+    },
+    "text": {
+      "primary": { "$value": "{color.sand.12}" },
+      "secondary": { "$value": "{color.sand.11}" },
+      "muted": { "$value": "{color.deep.8}" }
+    },
+    "accent": {
+      "solid": { "$value": "{color.ember.9}" },
+      "text": { "$value": "{color.ember.11}" }
+    },
+    "signal": {
+      "notable": { "$value": "{color.ember.9}" },
+      "major": { "$value": "{color.red.9}" },
+      "live": { "$value": "{color.ember.11}" }
+    }
+  }
+}
