@@ -1,0 +1,131 @@
+project_name,county,Fuel,Capacity (MW),latitude,longitude,GIM Study Phase,Interconnecting Entity,Projected COD
+Eagle Pines Gas,Cherokee,GAS,1173.5,31.8390826,-95.1791849,"SS Completed, FIS Started, No IA",FGE Power,2028-10-30
+"Wise County Power Repower (CT1, CT2)",Wise,GAS,21.0,33.2139213,-97.6563925,"SS Completed, FIS Completed, IA",Wise County Power Company LLC,2026-12-19
+Air Products GCA,Galveston,GAS,14.0,29.3872254,-94.992736,"SS Completed, FIS Completed, IA",Air Products,2025-12-31
+Hays Energy Unit 3 Repower,Hays,GAS,18.0,30.0447901,-98.0393127,"SS Completed, FIS Started, No IA","HAYS ENERGY, LLC",2027-07-01
+Midlothian Unit 2 repower,Ellis,GAS,18.0,32.3347829,-96.7920233,"SS Completed, FIS Started, No IA","MIDLOTHIAN ENERGY, LLC",2027-06-03
+TEXPO,Wilbarger,GAS,680.0,34.0265157,-99.2085961,"SS Completed, FIS Started, No IA","Oklaunion Power Station, LLC",2027-10-31
+Midlothian 4 repower,Ellis,GAS,18.0,32.3347829,-96.7920233,"SS Completed, FIS Started, No IA","MIDLOTHIAN ENERGY, LLC",2027-06-03
+Midlothian Unit 3 repower,Ellis,GAS,18.0,32.3347829,-96.7920233,"SS Completed, FIS Started, No IA","MIDLOTHIAN ENERGY, LLC",2027-06-03
+Enchanted Rock NEWPP,Harris,GAS,30.0,29.8119769,-95.3741247,"SS Completed, FIS Completed, IA","Generate ER-NG, LLC",2026-02-28
+Hays Energy Unit 2 Repower,Hays,GAS,18.0,30.0447901,-98.0393127,"SS Completed, FIS Started, No IA","HAYS ENERGY, LLC",2027-07-01
+Cedar Bayou 5 (TEF - Due Diligence),Chambers,GAS,697.0,29.7191125,-94.5412295,"SS Completed, FIS Completed, IA",NRG Cedar Bayou 5 LLC,2027-12-15
+Lamar Unit 1 Repower,Lamar,GAS,66.0,33.6383552,-95.582343,"SS Completed, FIS Started, No IA","La Frontera Holdings, LLC",2027-12-18
+Calpine Guadalupe Peakers,Guadalupe,GAS,450.0,29.6480061,-97.8279576,"SS Completed, FIS Started, No IA","Guadalupe Peaking Energy Center, LLC",2030-05-30
+NRG Greens Bayou 6 (TEF-Due Diligence),Harris,GAS,445.0,29.8119769,-95.3741247,"SS Completed, FIS Completed, IA",NRG Greens Bayou 6 LLC,2028-05-01
+CPS AvR CT1 Rotor Replacement,Bexar,GAS,11.3,29.4263987,-98.5104781,"SS Completed, FIS Completed, No IA",CPS Energy,2026-08-07
+Wolf Hollow III,Hood,GAS,306.32,32.4107555,-97.828282,"SS Completed, FIS Started, No IA",Wolf Hollow II Power LLC,2027-05-31
+Boling Generation (TEF-Due Diligience),Wharton,GAS,400.0,29.2454534,-96.2291474,"SS Completed, FIS Completed, No IA",Boling Generation,2028-12-16
+TEXAS GULF SULPHUR REPOWER,Wharton,GAS,16.1,29.2454534,-96.2291474,"SS Completed, FIS Completed, IA","Wharton County Generation, LLC",2025-03-27
+BasRanch (TEF - Due Diligence),Ward,GAS,1350.0,31.5007583,-103.0781186,"SS Completed, FIS Completed, IA","CPV Basin Ranch, LLC",2028-12-01
+CPS Energy AvR1CT2 Rotor Replacement,Bexar,GAS,23.2,29.4263987,-98.5104781,"SS Completed, FIS Completed, No IA",CPS Energy,2026-08-07
+Hays Energy Unit 1 Repower,Hays,GAS,18.0,30.0447901,-98.0393127,"SS Completed, FIS Started, No IA","HAYS ENERGY, LLC",2027-07-01
+Hays Energy Unit 4 Repower,Hays,GAS,18.0,30.0447901,-98.0393127,"SS Completed, FIS Started, No IA","HAYS ENERGY, LLC",2027-07-01
+Graphic Packaging Gas,McLennan,GAS,43.36,31.5487691,-97.2189254,"SS Completed, FIS Completed, IA",Graphic Packaging International,2027-02-15
+Bastrop Peaking Generators (TEF-Due Diligence),Bastrop,GAS,1104.0,30.0541116,-97.3887764,"SS Completed, FIS Started, IA","MPH Bastrop Peakers, LLC",2027-12-07
+Longleaf Power Station ,Angelina,GAS,600.0,31.2544545,-94.6181177,"SS Completed, FIS Started, No IA","WattBridge Texas Holdings, LLC",2029-03-31
+NET Power Demonstration plant,Harris,GAS,25.5,29.8119769,-95.3741247,"SS Completed, FIS Completed, No IA",NET Power LLC,2027-08-21
+Jack County III – 345 kV,Jack,GAS,660.0,33.2127019,-98.1639199,"SS Completed, FIS Started, No IA","Jack County Power Development, LLC",2027-07-01
+Central Power Station,Grimes,GAS,750.0,30.5169334,-95.9943034,"SS Completed, FIS Started, No IA",Hydra-Gen Energy Unlimited ,2027-05-01
+Liatris Flexible Gas,Brazoria,GAS,204.71,29.18161,-95.4993375,"SS Completed, FIS Started, IA",Stone Creek Peaker LLC,2029-02-01
+Sky Global West Houston,Austin,GAS,324.58,29.8916488,-96.2443467,"SS Completed, FIS Completed, IA","Sky Global Power Two, LLC",2027-06-01
+Electric E - West Texas Generation,Loving,GAS,43.64,31.8364044,-103.5663536,"SS Completed, FIS Started, No IA",Electric E Power Marketing,2028-04-09
+Comanche Creek generating station,Pecos,GAS,107.0,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA",Longfellow Power LLC,2027-12-31
+Fort Worth Power Core Bastrop Gas Plant,Bastrop,GAS,506.38,30.0541116,-97.3887764,"SS Completed, FIS Started, No IA",Fort Worth Power Core LLC,2029-09-28
+Electric E - West Texas Generation 2,Midland,GAS,0.0,31.83688,-102.0103767,"SS Completed, FIS Started, No IA",Electric E Power Marketing,2028-09-19
+Coleto Creek - Fuel Change Only,Goliad,GAS,655.0,28.6467776,-97.4379552,"SS Completed, FIS Started, No IA",COLETO CREEK POWER LLC,2026-12-15
+Exergy Energy West Texas Natural Gas Reciprocating Power I,Reeves,GAS,400.0,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",August Partners LLC,2027-05-01
+Monahans Power Gas,Ward,GAS,18.2,31.5007583,-103.0781186,"SS Completed, FIS Started, No IA",Liberty Power Innovations LLC,2030-04-16
+Sandow Lakes Energy Station,Milam,GAS,1291.6,30.7626867,-96.9981706,"SS Completed, FIS Started, No IA","SL Energy Power Plant I, LLC",2028-04-01
+Aegle Power,Cameron,GAS,1536.4,26.1291189,-97.4134281,"SS Completed, FIS Started, No IA",Aegle Power LLC ,2027-07-30
+Bulldog Power (TEF - Due Diligence) ,Brazoria,GAS,311.0,29.18161,-95.4993375,"SS Completed, FIS Completed, No IA",Bulldog Power LLC,2027-12-18
+Elk Unit 4 ,Hale,GAS,210.0,34.0321298,-101.8088827,"SS Completed, FIS Completed, IA","Golden Spread Electric Cooperative, Inc.",2027-02-28
+EMPower Odessa (TEF - Due Diligence) ,Ector,GAS,122.8,31.8941755,-102.5794339,"SS Completed, FIS Started, IA","EMPOWER USA, LLC",2028-03-09
+Tolivar Power Plant (TEF- Due Diligence),Reeves,GAS,224.5,31.232003,-103.6583657,"SS Completed, FIS Completed, IA","Pecos Power Plant, LLC",2027-06-11
+Rock Island Generating (TEF -Due Diligence),Colorado,GAS,121.8,29.6099609,-96.5478826,"SS Completed, FIS Completed, IA",Kerrville Public Utility Board Public Facility Corporation,2027-06-01
+LONE STAR INDUSTRIAL PARK GAS POWER PROJECT  ,Morris,GAS,166.0,33.0738633,-94.7392197,"SS Completed, FIS Started, No IA","LONE STAR INDUSTRIAL PARK, LLC",2028-05-11
+Jalisco Cogen ,Nueces,GAS,167.8,27.7153774,-97.6199942,"SS Completed, FIS Started, No IA","HEP Power Generation, LLC",2029-05-31
+Power Lane II Gas,Hunt,GAS,104.39,33.1161567,-96.0808922,"SS Completed, FIS Started, No IA",GEUS,2027-06-01
+Black Mountain Somervell Gas Combined,Somervell,GAS,495.3,32.2275813,-97.7724138,"SS Completed, FIS Started, No IA",Fort Worth Power Core LLC,2029-09-28
+Infrakey Waco Data Park Gas 2,McLennan,GAS,0.0,31.5487691,-97.2189254,"SS Completed, FIS Started, No IA",Infrakey Capital LLC,2030-06-01
+Kilby1 Part 1 Small Block Simple Cycle,Reeves,GAS,371.0,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",Energy Forge One LLC,2027-11-04
+Trailblazer Natural Gas Generation Plant,Nolan,GAS,1026.0,32.2719306,-100.3987748,"SS Started, FIS Started, No IA",Trailblazer Infrastructure LLC,2027-12-12
+Limitless Energy Hub I,Wilbarger,GAS,1238.25,34.0265157,-99.2085961,"SS Completed, FIS Started, IA",Limitless Energy Hub I LLC,2028-12-01
+Limitless Energy Hub II,Wilbarger,GAS,1238.25,34.0265157,-99.2085961,"SS Completed, FIS Started, IA",Limitless Energy Hub II LLC,2028-12-01
+Big Watt Mustang Power,Williamson,GAS,448.98,30.6580927,-97.6041649,"SS Completed, FIS Started, No IA",Big Watt Power Mustang LLC,2027-09-01
+Three Canes Gas P1,Freestone,GAS,0.0,31.6924428,-96.1629601,"SS Started, FIS Started, No IA","CleanAI, LLC",2027-11-30
+Three Canes Gas P2,Freestone,GAS,0.0,31.6924428,-96.1629601,"SS Started, FIS Started, No IA","CleanAI, LLC",2027-11-30
+Rock House Draw Gas,Pecos,GAS,523.0,30.7857437,-102.8065415,"SS Started, FIS Started, No IA",Longfellow Power LLC,2027-11-29
+West Royal Natural Gas (TEF-Due Diligence) ,Upton,GAS,888.0,31.3720387,-102.0386055,"SS Completed, FIS Started, No IA",Invenergy Energy Transition Development LLC,2030-06-01
+North Royal Thermal (TEF- Due Diligence),Lamar,GAS,479.0,33.6383552,-95.582343,"SS Completed, FIS Started, No IA",Invenergy Energy Transition Development LLC,2030-08-01
+EmberYork ,Austin,GAS,900.0,29.8916488,-96.2443467,"SS Completed, FIS Completed, IA",EmberYork Energy Center,2028-01-01
+EmberGreen ,Wharton,GAS,1036.0,29.2454534,-96.2291474,"SS Completed, FIS Completed, No IA",EmberGreen Energy Center,2028-01-01
+Digital Ranch Gas ,Ellis,GAS,378.0,32.3347829,-96.7920233,"SS Started, FIS Started, No IA",MCV 1 LLC,2027-12-01
+Vast Sands Power I (TEF -Due Diligence),Ward,GAS,440.0,31.5007583,-103.0781186,"SS Completed, FIS Started, IA",Permian Power I LLC,2028-05-01
+RAYBURN ENERGY STATION II Gas (TEF-Due Diligence),Grayson,GAS,570.0,33.5636114,-96.6702111,"SS Completed, FIS Started, IA","Rayburn Country Electric Cooperative, Inc.",2028-02-26
+Vast Sands Power II (TEF-Due Diligence),Ward,GAS,440.0,31.5007583,-103.0781186,"SS Completed, FIS Started, IA",Permian Power I LLC,2028-06-30
+Jalisco Peaker,Nueces,GAS,183.6,27.7153774,-97.6199942,"SS Completed, FIS Started, No IA","HEP Power Generation, LLC",2029-05-31
+Neptune Gas Generation Plant,Reeves,GAS,113.77,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",BPX Production Company,2028-03-15
+Infrakey Waco Data Park Gas 1,McLennan,GAS,180.0,31.5487691,-97.2189254,"SS Completed, FIS Started, No IA",Infrakey Capital LLC,2030-06-01
+Cielo Vista Power Gas Plant,Duval,GAS,343.8,27.6708701,-98.5121975,"SS Completed, FIS Started, No IA","Cielo Vista Power, LLC",2028-06-30
+Tolivar Power Plant Phase 2,Reeves,GAS,224.5,31.232003,-103.6583657,"SS Completed, FIS Completed, IA","Pecos Power Plant, LLC",2027-09-29
+Kilby1 Part 4 Large Block Simple Cycle,Reeves,GAS,950.0,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",Energy Forge One LLC,2028-04-20
+Wilson Gas Plant,Wilson,GAS,402.88,29.1589961,-98.1251465,"SS Completed, FIS Started, No IA",Misae Gas Power,2028-06-30
+Blue Kite,San Patricio,GAS,370.08,28.0003594,-97.5020441,"SS Completed, FIS Started, No IA","RWE Clean Energy Development, LLC",2028-12-29
+Cielo Vista Power II,Duval,GAS,350.38,27.6708701,-98.5121975,"SS Started, FIS Started, No IA","Cielo Vista Power II, LLC",2028-12-29
+Alpha Digital Campus Combined-cycle and Co-located Load,Reeves,GAS,58.26,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",PowerBridge LLC,2027-12-31
+Thunder Bird 2 Gas,Jack,GAS,1273.8,33.2127019,-98.1639199,"SS Started, FIS Started, No IA","Kalnin Ventures, LLC",2031-06-14
+Anawa La Gas,Hidalgo,GAS,1220.0,26.3530256,-98.216445,"SS Started, FIS Started, No IA",Anawa La Solar LLC,2028-12-30
+Wickson Creek Gas,Borden,GAS,1022.08,32.6879416,-101.425711,"SS Started, FIS Started, No IA","Wickson Creek Center, LLC",2028-05-01
+Alpha Power Phase 1,Guadalupe,GAS,400.1,29.6480061,-97.8279576,"SS Started, FIS Started, No IA","Palomino Alpha, LLC",2028-12-31
+Homestead Power (TEF-Due Diligence) ,Austin,GAS,260.3,29.8916488,-96.2443467,"SS Completed, FIS Started, No IA",Homestead Power LLC,2029-12-15
+Gregory Power Development SLF,San Patricio,GAS,469.9,28.0003594,-97.5020441,"SS Completed, FIS Started, No IA",Gregory Power Partners LLC,2028-12-19
+MilamStation Power Secured Gas Generation,Milam,GAS,846.0,30.7626867,-96.9981706,"SS Completed, FIS Started, No IA","LCC-TX8, LLC",2029-09-25
+Jewett Energy Center 1 Gas,Freestone,GAS,1274.0,31.6924428,-96.1629601,"SS Completed, FIS Started, No IA",Jewett Energy Center LLC,2029-11-01
+NRG Prairie Energy Center ,Hill,GAS,1253.0,31.9595085,-97.0881654,"SS Completed, FIS Started, No IA",NRG Prairie Energy Center LLC,2030-12-31
+Wolf Bone North Energy Center (OLD),Reeves,GAS,1204.0,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",NRG Wolf Bone Energy Center LLC,2029-11-01
+LOST PINES GAS RECIP,Bastrop,GAS,113.02,30.0541116,-97.3887764,"SS Completed, FIS Started, IA",LCRA,2033-06-01
+Big Watt Power Austin-1,Caldwell,GAS,448.98,29.8298971,-97.5959641,"SS Completed, FIS Started, No IA",Big Watt Power Austin-1 LLC,2028-11-01
+Black Mountain Hale Gas,Hale,GAS,990.6,34.0321298,-101.8088827,"SS Completed, FIS Started, No IA",Fort Worth Power Core LLC,2030-04-16
+SCHNEIDER GAS RICE,Caldwell,GAS,113.02,29.8298971,-97.5959641,"SS Completed, FIS Started, IA",LCRA,2030-12-17
+Black Mountain Fannin Gas,Fannin,GAS,990.59,33.5372542,-96.0902822,"SS Started, FIS Started, No IA",Black Mountain Power LLC,2030-04-26
+Kilby1 Part 6 Large Block Combined Cycle,Reeves,GAS,1056.0,31.232003,-103.6583657,"SS Completed, FIS Started, No IA",Energy Forge One LLC,2029-07-19
+Riviera Gas,Bell,GAS,636.9,31.0081659,-97.4314413,"SS Completed, FIS Started, No IA",BKV-BPP Power ,2030-06-14
+Cerulean Phase 2 – CCGT,Victoria,GAS,1264.6,28.8026443,-96.9766308,"SS Completed, FIS Started, No IA","Brother 1, LLC",2031-10-17
+Victory Ellis  – Gas,Ellis,GAS,465.92,32.3347829,-96.7920233,"SS Started, FIS Started, No IA","Victory Ellis, LLC",2028-12-31
+Valentine Energy Center,Pecos,GAS,162.3,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA","Valentine Energy Center, LLC",2028-11-28
+BM Freestone Energy Center,Freestone,GAS,990.6,31.6924428,-96.1629601,"SS Completed, FIS Started, No IA",Black Mountain Energy Storage II,2029-09-20
+Flurry Gas 1,Midland,GAS,109.8,31.83688,-102.0103767,"SS Completed, FIS Started, No IA",NET Power Canaveral LLC,2029-04-16
+Tyler Rose Power Plant 1,Grimes,GAS,597.36,30.5169334,-95.9943034,"SS Started, FIS Started, No IA","ProEnergy Services, LLC",2029-07-01
+Tyler Rose Power Plant 2,Grimes,GAS,398.24,30.5169334,-95.9943034,"SS Started, FIS Started, No IA"," ProEnergy Services, LLC",2029-12-01
+Bobcat Generating Station,Caldwell,GAS,450.0,29.8298971,-97.5959641,"SS Started, FIS Started, No IA","Critical Grid Solutions Bobcat, LLC",2029-11-01
+Pampa Natural Gas ,Roberts,GAS,250.7,35.8309752,-100.8058034,"SS Started, FIS Started, No IA",IP Meitner Gas,2030-01-01
+Aurelius 3 Natural Gas,Deaf Smith,GAS,1275.0,34.9323974,-102.5983118,"SS Started, FIS Started, No IA","IP Roman III Gas, LLC",2029-06-30
+Alpha Power Phase 2,Guadalupe,GAS,400.1,29.6480061,-97.8279576,"SS Started, FIS Started, No IA","Palomino Alpha, LLC",2029-12-31
+Willow Oak Gas ,Jefferson,GAS,1350.0,29.834772,-94.1704496,"SS Completed, FIS Started, No IA",Willow Oak Energy LLC,2030-01-01
+Caldwell County Energy Center,Caldwell,GAS,1500.0,29.8298971,-97.5959641,"SS Completed, FIS Started, No IA","Caldwell County Energy Center, LLC",2030-04-30
+Sim Gideon Combined Cycle,Bastrop,GAS,880.0,30.0541116,-97.3887764,"SS Completed, FIS Started, IA",LCRA,2030-12-15
+Lost Pines Power Park,Bastrop,GAS,880.0,30.0541116,-97.3887764,"SS Completed, FIS Started, IA",LCRA,2033-06-01
+SCHNEIDER COMBINED CYCLE,Caldwell,GAS,880.0,29.8298971,-97.5959641,"SS Completed, FIS Started, IA",LCRA,2032-04-13
+Prairie Ridge (Gas - CC),Franklin,GAS,1660.4,33.2002659,-95.2231752,"SS Completed, FIS Started, No IA","Tenaska Power Generation, LLC",2032-06-01
+Bulldog Power II,Brazoria,GAS,311.0,29.18161,-95.4993375,"SS Completed, FIS Started, No IA",Bulldog Power II LLC,2030-09-30
+Moon Hammer,Wheeler,GAS,1300.0,35.3921902,-100.2632764,"SS Completed, FIS Started, IA",Moon Hammer LLC,2030-11-30
+Indigo Quill Gas,Glasscock,GAS,370.08,31.8640224,-101.4811312,"SS Completed, FIS Started, No IA","RWE Clean Energy Development, LLC",2028-12-29
+Gravitas I Natural Gas,Pecos,GAS,1247.04,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA","S&S Renewables, LLC",2030-06-30
+BM Great Rock Energy Center,Leon,GAS,1981.2,31.2715127,-95.9953382,"SS Completed, FIS Started, No IA",Black Mountain Energy Storage II,2029-05-15
+The Giant Arc-II,Pecos,GAS,1300.0,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA","Powering Knowledge, LLC",2030-04-11
+Thunder Bird 1 Gas,Jack,GAS,1272.8,33.2127019,-98.1639199,"SS Started, FIS Started, No IA","Kalnin Ventures, LLC",2030-06-14
+The Giant Arc I,Pecos,GAS,1300.0,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA","Powering Knowledge, LLC",2030-04-08
+Longleaf II Power Station,Angelina,GAS,600.0,31.2544545,-94.6181177,"SS Started, FIS Started, No IA","WattBridge Texas Holdings, LLC",2030-07-01
+Alpha Power Phase 3,Guadalupe,GAS,400.1,29.6480061,-97.8279576,"SS Started, FIS Started, No IA","Palomino Alpha, LLC",2030-12-31
+LOST PINES GAS RECIP PHASE 2,Bastrop,GAS,113.02,30.0541116,-97.3887764,"SS Completed, FIS Started, IA",LCRA,2033-06-01
+SIM GIDEON GAS RICE,Bastrop,GAS,226.03,30.0541116,-97.3887764,"SS Completed, FIS Started, IA",LCRA,2031-05-10
+SCHNEIDER GAS RICE PHASE 2,Caldwell,GAS,113.02,29.8298971,-97.5959641,"SS Completed, FIS Started, IA",LCRA,2030-12-17
+Permian I Natural Gas,Pecos,GAS,1246.95,30.7857437,-102.8065415,"SS Completed, FIS Started, No IA","S&S Renewables, LLC",2030-06-30
+Mule Deer Run Gas II,Anderson,GAS,1263.0,31.7819242,-95.6258199,"SS Started, FIS Started, No IA","Anderson Energy Center, LLC",2032-07-01
+Mule Deer Run Gas III,Anderson,GAS,1263.0,31.7819242,-95.6258199,"SS Started, FIS Started, No IA","Anderson Energy Center, LLC",2032-07-01
+Alpha Power Phase 4,Guadalupe,GAS,400.1,29.6480061,-97.8279576,"SS Started, FIS Started, No IA","Palomino Alpha, LLC",2031-12-31
+Mule Deer Run Gas,Anderson,GAS,1263.0,31.7819242,-95.6258199,"SS Completed, FIS Started, No IA","Anderson Energy Center, LLC",2031-07-01
+Alpha Power Phase 5,Guadalupe,GAS,400.1,29.6480061,-97.8279576,"SS Started, FIS Started, No IA","Palomino Alpha, LLC",2032-12-31
+Bullock Gas,Hill,GAS,1400.0,31.9595085,-97.0881654,"SS Completed, FIS Started, No IA","Bullock Data Center, LLC",2032-07-01
+Liberty Thermal Energy Center,Hill,GAS,1400.0,31.9595085,-97.0881654,"SS Completed, FIS Started, No IA","Liberty Data Center I, LLC",2032-07-01

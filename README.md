@@ -2,63 +2,87 @@
 
 **Track 1 · Project Radar · Candid Intelligence Hackathon, Houston, 2026-08-08**
 
-A live situation screen for Texas energy capital projects. Interconnection queues, utility-commission
-dockets, environmental permits, county agendas, and press are stitched into one self-updating,
-textured, typographic map — built for the origination question: *which projects are real, which are
-early, and who is driving them.*
+Data Planner is an evidence-backed situation screen for Texas data-center demand and power-supply opportunities. It brings source snapshots, deterministic stage assessment, retained project evidence, and a cinematic map into one origination workflow: **which projects are real, which are early, and what evidence supports the call?**
+
+> **Evidence boundary:** A marker, stage, confidence score, or event is always traceable to a retained source record. Ambiguous records are review candidates, not automatic entity merges.
 
 ## What it does
 
-- **Live theater** — every new filing slides into the wire, pulses its project on the map, and flies
-  an arc from the agency it came from (PUCT/TCEQ/ERCOT → Austin, FERC → DC) to the site. Supabase
-  Realtime with an invisible 5s-polling fallback.
-- **Investor heat** — one score (`0.5·stage-earliness + 0.28·recency + 0.22·MW`) drives every visual
-  channel: marker color/size, extruded MW columns, the "Where the money should look" live ranking.
-  Early + big + moving = white-hot.
-- **Entity resolution, visible** — each dossier shows the canonical project plus its aliases (LLC,
-  queue name, permit name) with per-alias confidence. Unattributed signals get their own lane.
-- **Stage inference, visible** — the FEL ladder (concept → FEL-1 → FEL-2/pre-FEED → FEED → IA → FID →
-  construction → COD) with confidence and the filings that justify each call. Stage changes fire a
-  live "stage call" chyron.
-- **One-screen story** — click any project: its whole cross-source history, provenance-linked.
+| Capability | Implementation |
+| --- | --- |
+| **Live map theater** | Next.js, MapLibre, deck.gl, and GSAP render source-backed projects, county activity, stage progress, pairing tethers, filing arcs, and a live signal wire. |
+| **Evidence graph** | Python 3.12, SQLAlchemy, and FastAPI retain projects, documents, normalized signals, events, ingestion runs, and match candidates in SQLite by default; the model is portable to PostgreSQL/PostGIS. |
+| **Hybrid web transport** | Set `NEXT_PUBLIC_RADAR_API_URL` to poll the Python FastAPI evidence snapshot. When that variable is absent, the design branch’s Supabase Realtime transport and polling fallback remain available for the standalone design demo. |
+| **Stage solution** | Deterministic rules assign canonical Radar stages and confidence. Planned capacity is `Concept`, not construction or FID; ERCOT study and agreement milestones produce their own bounded stage calls. |
+| **Entity-resolution safety** | Name, developer, county, capacity, and technology identify review candidates. Similarity never silently merges data-center, generation, or gas-unit records. |
+| **TCEQ readiness** | The public TCEQ query pattern and schema are versioned. The adapter reports upstream health, but it does not create unsupported permit evidence when the official endpoint is unavailable. |
+
+## Active source coverage
+
+| Source snapshot | Role in the product | Join and confidence boundary |
+| --- | --- | --- |
+| `texas_datacenter_projects.csv` | Cleanview-derived Texas data-center pipeline | Own source URL/key; source status maps to evidence-bounded stages. |
+| `data/fixtures/ercot_gis_july_2026.xlsx` | ERCOT July 2026 generation/interconnection baseline | ERCOT INR is the canonical queue key; study milestones drive the ERCOT stage rules. |
+| `data/real/cleanview_gas_plants.csv` | Cleanview-derived planned natural-gas capacity | Source URL/key preserves distinct units; `Planned` remains `Concept` at 0.60 confidence. |
+| `data/real/ercot_gis_gas_projects_july_2026.csv` | 130 geocoded ERCOT gas projects with projected-COD evidence | Attaches only to a uniquely exact normalized `project name + county + capacity` match; adds evidence and coordinates without duplicating projects. |
+
+The ERCOT gas supplement is not a fuzzy merge. Each matching row creates an immutable source document, a normalized enrichment signal, and an `evidence_added` event on the existing canonical ERCOT project. Unmatched or ambiguous rows remain visible in ingestion health rather than being guessed.
 
 ## Architecture
 
-| Layer | Choice |
-|---|---|
-| Frontend | Next.js 15 (App Router, bun) · `web/` |
-| Map | MapLibre GL + deck.gl — hillshade (open Terrarium DEM), county hairlines, typographic labels (Fraunces/Plex), heat columns, arcs. No vendor token. |
-| Data | Supabase Postgres + Realtime · contract in `supabase/migrations/0001_init.sql` |
-| Liveness insurance | `web/scripts/simulate-feed.ts` — seeds 60 days of history, streams events every 20–60s; real ingestion rows interleave with zero code change |
-| Design system | `web/DESIGN.md` (tokens as code) → CSS vars → Tailwind/Storybook; Chromatic visual tests; Playwright smoke |
-| Docs | `docs/` (Zensical) — data contract + design system |
-| Secrets | Doppler `energy-hackathon` |
-
-## Run it
-
-```bash
-cd web && bun install
-doppler run -- bun scripts/migrate.ts             # apply schema (pooler auto-discovery)
-doppler run -- bun scripts/simulate-feed.ts --seed
-doppler run -- bun dev                            # app on :3000
-doppler run -- bun scripts/simulate-feed.ts --live  # demo heartbeat
+```text
+Committed source snapshots
+  ├── Cleanview data-center and gas capacity records
+  ├── ERCOT GIS workbook
+  └── ERCOT geocoded gas-project supplement
+                 │
+                 ▼
+Python source adapters → SQLite / PostgreSQL evidence graph
+                 │                         │
+                 ▼                         └── FastAPI /api/v1/radar/*
+Next.js + MapLibre/deck.gl map theater ◄────── NEXT_PUBLIC_RADAR_API_URL
+                 │
+                 └── Optional Supabase Realtime transport for standalone design demo
 ```
 
-## Sources wired today / next
+## Run with the Python evidence API
 
-Seeded from a Cleanview-derived Texas data-center dataset (50 projects, real coordinates), enriched
-with a simulated multi-source filing stream that exercises the full contract. The ingestion pipeline
-(teammates) writes the same tables live: ERCOT GIS/RIOO, PUCT Interchange, TCEQ ePermit, FERC
-eLibrary, RRC, county agendas, press.
+Create the local database and run the API from the repository root:
 
-**With another week:** real scrapers on cron for every source; LLM entity-resolution + stage
-inference with eval harness; the time-machine scrub (replay 60 days of filings cinematically);
-stage-change alerting; the Track-2 join — conference speakers ↔ these projects, one graph.
+```bash
+uv sync
+PYTHONPATH=src uv run uvicorn radar.api:app --host 0.0.0.0 --port 8000 --reload
+```
 
-## Backend integration (feature/project-radar-mvp)
+In a second terminal, run the web application against that API:
 
-The Python evidence pipeline lives in `src/radar/` (FastAPI + SQLAlchemy: ERCOT GIS / Cleanview /
-TCEQ services, deterministic entity resolution and stage rules, tests). The frontend speaks both
-transports: set `NEXT_PUBLIC_RADAR_API_URL` to poll the Python API's evidence snapshot
-(`/api/v1/radar/snapshot`), or leave it unset for Supabase realtime (the live demo default).
-Backend setup: `docs/LOCAL_SETUP.md` · smoke test: `docs/SMOKE_TEST.md`.
+```bash
+cd web
+bun install
+NEXT_PUBLIC_RADAR_API_URL=http://127.0.0.1:8000 bun run dev -- --port 3000
+```
+
+Open [http://localhost:3000](http://localhost:3000). The first API request imports active source snapshots into `data/project_radar.sqlite3` and exposes the evidence graph at `/api/v1/radar/snapshot`.
+
+For the optional standalone Supabase demo transport, omit `NEXT_PUBLIC_RADAR_API_URL` and use the environment and scripts documented in `web/README.md`.
+
+## Validate
+
+```bash
+PYTHONPATH=src uv run pytest -q
+cd web && bun run build
+```
+
+The Python suite covers deterministic stage rules, conservative match review, Cleanview ingestion, ERCOT GIS ingestion, planned-gas unit preservation, exact-match ERCOT gas geospatial enrichment, TCEQ source health, and the FastAPI contract.
+
+## Documentation
+
+| Resource | Purpose |
+| --- | --- |
+| `docs/LOCAL_SETUP.md` | Local FastAPI and frontend operating guide. |
+| `docs/TCEQ_SOURCE_STATUS.md` | Environmental-source access and availability boundary. |
+| `docs/docs/data-contract.md` | Frontend data-contract reference. |
+| `docs/docs/design-system.md` | Data Planner visual-system reference. |
+| `DEMO.md` | Hackathon demonstration narrative. |
+
+The primary implementation branch is **`feature/project-radar-mvp`**.

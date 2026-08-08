@@ -122,7 +122,7 @@ cd /home/qinxuan/personal_proj/texas-data-center-demo-
 uv run pytest
 ```
 
-Expected: **14 tests pass** ✓
+Expected: **16 tests pass** ✓
 
 ### 2. Check Frontend Build
 
@@ -137,8 +137,8 @@ This validates TypeScript and bundle size. Should succeed without errors.
 
 ```bash
 curl http://127.0.0.1:8000/docs
-curl http://127.0.0.1:8000/api/v1/radar/projects
-curl http://127.0.0.1:8000/api/v1/radar/source-status
+curl http://127.0.0.1:8000/api/v1/radar/snapshot
+curl -X POST http://127.0.0.1:8000/api/v1/radar/sources/tceq/check
 ```
 
 ### 4. Access the Web App
@@ -147,11 +147,12 @@ Navigate to **http://localhost:3000** in your browser.
 
 ## Data Sources
 
-The MVP ingests three committed source snapshots:
+The MVP ingests four committed source snapshots:
 
 1. **Cleanview Data Centers** — `texas_datacenter_projects.csv`
 2. **ERCOT GIS July 2026** — `data/fixtures/ercot_gis_july_2026.xlsx`
 3. **Cleanview Planned Gas** — `cleanview_gas_plants.csv`
+4. **ERCOT Gas Geospatial Supplement** — `ercot_gis_gas_projects_july_2026.csv`; its 130 records attach only to uniquely exact-matched canonical ERCOT GIS projects and contribute coordinates, projected COD, and retained evidence without creating duplicates.
 
 Source status and evidence lineage:
 - See [docs/TCEQ_SOURCE_STATUS.md](docs/TCEQ_SOURCE_STATUS.md)

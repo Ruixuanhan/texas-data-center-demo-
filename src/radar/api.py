@@ -43,6 +43,7 @@ SOURCE_KEYS = {
     "Cleanview": "cleanview",
     "Cleanview Gas Plants": "cleanview",
     "ERCOT GIS": "ercot_gis",
+    "ERCOT GIS Gas Projects": "ercot_gis",
     "TCEQ": "tceq",
     "PUCT": "puct",
     "FERC": "ferc",
