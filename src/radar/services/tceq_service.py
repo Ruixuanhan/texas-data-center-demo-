@@ -101,3 +101,33 @@ def run_tceq_source_health_check(
         "before they can be attached as environmental permit evidence."
     )
     return run
+
+def fetch_access_id() -> str:
+    """
+    Pre-fetch the TCEQ search page to obtain a session accessID.
+    The accessID is embedded in the page HTML as a hidden form field or
+    JavaScript variable.  Returns an empty string if not found.
+    """
+    url = BASE_URL + "?IdcService=TCEQ_SEARCH&xIdcProfile=Record&IsExternalSearch=1"
+    if _verbose:
+        print(f"Pre-fetch accessID: GET {url}", file=sys.stderr)
+    try:
+        req = urllib.request.Request(url, headers=_HEADERS)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        # Look for accessID in a hidden input or JS variable
+        for pat in (
+            r'name=["\']accessID["\'][^>]*value=["\'](\d+)["\']',
+            r'value=["\'](\d+)["\'][^>]*name=["\']accessID["\']',
+            r'["\']accessID["\']\s*[,:]\s*["\']?(\d+)',
+            r'accessID=(\d+)',
+        ):
+            m = re.search(pat, html, re.I)
+            if m:
+                access_id = m.group(1)
+                if _verbose:
+                    print(f"Got accessID={access_id}", file=sys.stderr)
+                return access_id
+    except Exception as exc:
+        print(f"Warning: could not pre-fetch accessID: {exc}", file=sys.stderr)
+    return ""
