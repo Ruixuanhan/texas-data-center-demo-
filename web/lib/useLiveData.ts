@@ -1,11 +1,17 @@
 "use client";
-
+// Live data layer with TWO transports behind one interface:
+//   1. Python Radar API (feature/project-radar-mvp backend) — set NEXT_PUBLIC_RADAR_API_URL
+//      and the app polls its evidence snapshot (projects, events, stage history).
+//   2. Supabase realtime (default) — postgres_changes subscriptions with an invisible
+//      5s polling fallback (RLS/publication misconfig is the classic silent failure).
+// The page consumes one shape either way; the demo never depends on which backend is up.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { radarFetch } from "./api";
+import { supabase } from "./supabase";
+import { RADAR_API_URL, radarFetch } from "./api";
 import type { Project, ProjectAlias, SourceEvent, StageHistoryRow } from "./types";
 
 const FEED_LIMIT = 80;
-const POLL_MS = 8_000;
+const API_POLL_MS = 8_000;
 
 export interface RadarSnapshot {
   generated_at: string;
@@ -13,101 +19,130 @@ export interface RadarSnapshot {
   events: SourceEvent[];
   stage_history: StageHistoryRow[];
   aliases: ProjectAlias[];
-  match_candidates: Array<{
-    id: string;
-    left_project_id: string;
-    right_project_id: string;
-    score: number;
-    decision: string;
-    explanation: string;
-    features: Record<string, number>;
-  }>;
-  ingestion_runs: Array<{
-    id: string;
-    source: string;
-    status: string;
-    records_seen: number;
-    records_changed: number;
-    completed_at: string | null;
-    message: string | null;
-  }>;
 }
 
 export interface LiveData {
   projects: Map<string, Project>;
   feed: SourceEvent[];
-  stageHistory: StageHistoryRow[];
-  aliases: ProjectAlias[];
   latestStageChange: StageHistoryRow | null;
-  /** IDs whose evidence changed since the last refresh; this drives map pulses. */
+  /** ids of projects that fired an event in the last few seconds (drives map pulses) */
   hot: Set<string>;
-  connected: "polling" | "connecting" | "error";
+  connected: "realtime" | "polling" | "connecting";
   signalsToday: number;
-  lastUpdated: string | null;
-  error: string | null;
 }
 
 export function useLiveData(): LiveData {
   const [projects, setProjects] = useState<Map<string, Project>>(new Map());
   const [feed, setFeed] = useState<SourceEvent[]>([]);
-  const [stageHistory, setStageHistory] = useState<StageHistoryRow[]>([]);
-  const [aliases, setAliases] = useState<ProjectAlias[]>([]);
   const [latestStageChange, setLatestStageChange] = useState<StageHistoryRow | null>(null);
   const [hot, setHot] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState<LiveData["connected"]>("connecting");
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const seenEventIds = useRef<Set<string>>(new Set());
+  const [signalsToday, setSignalsToday] = useState(0);
+  const seen = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      const snapshot = await radarFetch<RadarSnapshot>("/api/v1/radar/snapshot");
-      const rows = snapshot.events.slice(0, FEED_LIMIT);
-      const fresh = rows.filter((row) => !seenEventIds.current.has(row.id));
-      rows.forEach((row) => seenEventIds.current.add(row.id));
+  const markHot = (projectId: string | null) => {
+    if (!projectId) return;
+    setHot((prev) => new Set(prev).add(projectId));
+    setTimeout(() => setHot((prev) => { const n = new Set(prev); n.delete(projectId); return n; }), 6000);
+  };
 
-      setProjects(new Map(snapshot.projects.map((project) => [project.id, project])));
-      setFeed(rows);
-      setStageHistory(snapshot.stage_history);
-      setAliases(snapshot.aliases);
-      setLastUpdated(snapshot.generated_at);
-      setError(null);
-      setConnected("polling");
-
-      const latest = snapshot.stage_history
-        .filter((row) => row.stage && row.inferred_at)
-        .sort((left, right) => right.inferred_at.localeCompare(left.inferred_at))[0] ?? null;
-      setLatestStageChange(latest);
-
-      if (!firstLoad.current && fresh.length) {
-        const updatedIds = new Set(fresh.map((row) => row.project_id).filter((id): id is string => Boolean(id)));
-        setHot(updatedIds);
-        window.setTimeout(() => setHot(new Set()), 6_000);
-      }
-      firstLoad.current = false;
-    } catch (reason) {
-      setConnected("error");
-      setError(reason instanceof Error ? reason.message : "Unable to reach the Project Radar API");
-    }
+  const ingestEvents = useCallback((rows: SourceEvent[], pulse: boolean) => {
+    const fresh = rows.filter((r) => !seen.current.has(r.id));
+    if (!fresh.length) return;
+    fresh.forEach((r) => seen.current.add(r.id));
+    setFeed((prev) => [...fresh, ...prev].sort((a, b) => b.ingested_at.localeCompare(a.ingested_at)).slice(0, FEED_LIMIT));
+    const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+    setSignalsToday((n) => n + fresh.filter((r) => new Date(r.ingested_at) >= midnight).length);
+    if (pulse) fresh.forEach((r) => markHot(r.project_id));
   }, []);
 
+  // ——— transport 1: the team's Python Radar API ———
   useEffect(() => {
+    if (!RADAR_API_URL) return;
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const snap = await radarFetch<RadarSnapshot>("/api/v1/radar/snapshot");
+        if (disposed) return;
+        setProjects(new Map(snap.projects.map((p) => [p.id, p])));
+        ingestEvents(snap.events.slice(0, FEED_LIMIT), !firstLoad.current);
+        const latest = [...snap.stage_history].sort((a, b) => b.inferred_at.localeCompare(a.inferred_at))[0] ?? null;
+        setLatestStageChange(latest);
+        setConnected("polling");
+        firstLoad.current = false;
+      } catch { /* keep last good frame; next tick retries */ }
+    };
     void refresh();
-    const timer = window.setInterval(() => void refresh(), POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
+    const t = setInterval(() => void refresh(), API_POLL_MS);
+    return () => { disposed = true; clearInterval(t); };
+  }, [ingestEvents]);
 
-  return {
-    projects,
-    feed,
-    stageHistory,
-    aliases,
-    latestStageChange,
-    hot,
-    connected,
-    signalsToday: feed.length,
-    lastUpdated,
-    error,
-  };
+  // ——— transport 2 (default): Supabase realtime + polling fallback ———
+  useEffect(() => {
+    if (RADAR_API_URL) return;
+    const db = supabase();
+    let disposed = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    (async () => {
+      const [{ data: proj }, { data: events }] = await Promise.all([
+        db.from("projects").select("*"),
+        db.from("source_events").select("*").order("ingested_at", { ascending: false }).limit(FEED_LIMIT),
+      ]);
+      if (disposed) return;
+      if (proj) setProjects(new Map(proj.map((p: Project) => [p.id, p])));
+      if (events) {
+        events.forEach((e: SourceEvent) => seen.current.add(e.id));
+        setFeed(events as SourceEvent[]);
+        const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+        setSignalsToday((events as SourceEvent[]).filter((r) => new Date(r.ingested_at) >= midnight).length);
+      }
+    })();
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      setConnected("polling");
+      pollTimer = setInterval(async () => {
+        const { data } = await db.from("source_events").select("*").order("ingested_at", { ascending: false }).limit(20);
+        if (data) ingestEvents(data as SourceEvent[], true);
+        const { data: proj } = await db.from("projects").select("*");
+        if (proj) setProjects(new Map(proj.map((p: Project) => [p.id, p])));
+      }, 5000);
+    };
+
+    const channel = db
+      .channel("radar-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "source_events" }, (payload) => {
+        ingestEvents([payload.new as SourceEvent], true);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stage_history" }, (payload) => {
+        setLatestStageChange(payload.new as StageHistoryRow);
+        markHot((payload.new as StageHistoryRow).project_id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, (payload) => {
+        const p = payload.new as Project;
+        if (p?.id) setProjects((prev) => new Map(prev).set(p.id, p));
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setConnected("realtime");
+          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          startPolling();
+        }
+      });
+
+    const guard = setTimeout(() => { if (!pollTimer) startPolling(); }, 8000);
+
+    return () => {
+      disposed = true;
+      clearTimeout(guard);
+      if (pollTimer) clearInterval(pollTimer);
+      db.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ingestEvents]);
+
+  return { projects, feed, latestStageChange, hot, connected, signalsToday };
 }

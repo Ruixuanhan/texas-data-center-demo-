@@ -1,7 +1,8 @@
 "use client";
 // The killer interaction: one project's entire stitched story on one screen.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { supabase } from "@/lib/supabase";
 import {
   SOURCE_LABELS, STAGE_LABELS, STAGE_LADDER,
   type Project, type ProjectAlias, type SourceEvent, type StageHistoryRow, type Stage,
@@ -14,21 +15,18 @@ export function ProjectDossier({
   projectId,
   project,
   paired,
-  events,
-  history,
-  aliases,
   onSelectProject,
   onClose,
 }: {
   projectId: string;
   project: Project | null;
   paired?: { other: Project; km: number } | null;
-  events: SourceEvent[];
-  history: StageHistoryRow[];
-  aliases: ProjectAlias[];
   onSelectProject?: (id: string) => void;
   onClose: () => void;
 }) {
+  const [aliases, setAliases] = useState<ProjectAlias[]>([]);
+  const [events, setEvents] = useState<SourceEvent[]>([]);
+  const [history, setHistory] = useState<StageHistoryRow[]>([]);
   const secRef = useRef<HTMLElement>(null);
 
   // designed entrance: panel slides in, story beats stagger down the page
@@ -45,6 +43,23 @@ export function ProjectDossier({
     return () => ctx.revert();
   }, [projectId]);
 
+  useEffect(() => {
+    const db = supabase();
+    let live = true;
+    (async () => {
+      const [a, e, h] = await Promise.all([
+        db.from("project_aliases").select("*").eq("project_id", projectId),
+        db.from("source_events").select("*").eq("project_id", projectId).order("occurred_at", { ascending: false }).limit(40),
+        db.from("stage_history").select("*").eq("project_id", projectId).order("inferred_at", { ascending: false }),
+      ]);
+      if (!live) return;
+      setAliases((a.data as ProjectAlias[]) ?? []);
+      setEvents((e.data as SourceEvent[]) ?? []);
+      setHistory((h.data as StageHistoryRow[]) ?? []);
+    })();
+    return () => { live = false; };
+  }, [projectId]);
+
   if (!project) return null;
   const onLadder = STAGE_LADDER.includes(project.current_stage);
   const currentIdx = onLadder ? STAGE_LADDER.indexOf(project.current_stage) : -1;
@@ -55,7 +70,7 @@ export function ProjectDossier({
       className="absolute inset-y-0 left-0 z-10 flex w-[480px] max-w-full flex-col border-r border-[var(--border-subtle)] bg-[var(--surface-overlay)] opacity-0 backdrop-blur"
       aria-label={`Dossier: ${project.name}`}
     >
-      <header data-beat className="border-b border-[var(--line)] px-5 py-4">
+      <header data-beat className="border-b border-[var(--line)] px-6 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600 }} className="text-[21px] leading-tight text-[var(--text)]">
@@ -68,7 +83,7 @@ export function ProjectDossier({
           </div>
           <div className="flex items-center gap-3">
             <span className="flex flex-col items-end">
-              <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-faint)]">heat</span>
+              <span className="mono text-[9px] uppercase tracking-[0.2em] text-[var(--text-faint)]">heat</span>
               <span style={{ fontFamily: "var(--font-display), Georgia, serif", color: heatHex(heatScore(project)) }} className="text-[22px] leading-none">
                 {heatScore(project).toFixed(2)}
               </span>
@@ -96,9 +111,9 @@ export function ProjectDossier({
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         {/* Stage ladder */}
-        <h3 data-beat className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Stage inference</h3>
+        <h3 data-beat className="mono mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Stage inference</h3>
         <div data-beat className="mb-1 flex items-center gap-1">
           {STAGE_LADDER.map((s, i) => (
             <div key={s} className="group relative flex-1">
@@ -134,7 +149,7 @@ export function ProjectDossier({
         {/* Alias cluster — entity resolution made visible */}
         {aliases.length > 0 && (
           <>
-            <h3 data-beat className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Resolved identities</h3>
+            <h3 data-beat className="mono mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Resolved identities</h3>
             <div data-beat className="mb-5 flex flex-wrap gap-1.5">
               <span className="mono rounded-sm bg-[var(--bg-panel)] px-2 py-1 text-[11px] text-[var(--text)]">{project.name}</span>
               {aliases.map((a) => (
@@ -148,7 +163,7 @@ export function ProjectDossier({
         )}
 
         {/* Source timeline with provenance */}
-        <h3 className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">
+        <h3 className="mono mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">
           Source record · {events.length} filings
         </h3>
         <ol data-beat className="space-y-3">

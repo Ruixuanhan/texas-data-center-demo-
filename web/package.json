@@ -11,13 +11,19 @@
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.8",
+    "@deck.gl/extensions": "^9.3.8",
     "@deck.gl/layers": "^9.3.8",
     "@deck.gl/mapbox": "^9.3.8",
+    "@deck.gl/mesh-layers": "^9.3.8",
     "@deck.gl/react": "^9.3.8",
+    "@gltf-transform/core": "^4.4.2",
+    "@loaders.gl/gltf": "^4.4.4",
+    "@supabase/supabase-js": "^2.112.2",
     "deck.gl": "^9.3.8",
     "gsap": "^3.15.0",
     "maplibre-gl": "^6.2.0",
     "next": "16.3.0",
+    "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -50,5 +56,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "patchedDependencies": {
+    "maplibre-gl@6.2.0": "patches/maplibre-gl@6.2.0.patch"
+  }
 }

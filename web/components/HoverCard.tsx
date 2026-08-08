@@ -15,7 +15,7 @@ export function HoverCard({ info }: { info: HoverInfo | null }) {
     const el = ref.current;
     if (!el) return;
     if (info) {
-      const flip = info.x > window.innerWidth - 320;
+      const flip = info.x > window.innerWidth - 328;
       const rise = info.y > window.innerHeight - 220;
       gsap.set(el, { x: info.x + (flip ? -14 : 14), y: info.y + (rise ? -12 : 12), xPercent: flip ? -100 : 0, yPercent: rise ? -100 : 0 });
       if (info.project.id !== lastId.current) {
@@ -50,7 +50,7 @@ export function HoverCard({ info }: { info: HoverInfo | null }) {
           <p data-hc style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600 }} className="text-[16px] leading-snug text-[var(--text)]">
             {p.name}
           </p>
-          <p data-hc className="mono mt-0.5 text-[9.5px] uppercase tracking-[0.16em] text-[var(--text-dim)]">
+          <p data-hc className="mono mt-0.5 text-[9.5px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
             {[p.developer, p.county && `${p.county} Co`, p.capacity_mw ? `${Math.round(p.capacity_mw)} MW` : null].filter(Boolean).join(" · ")}
           </p>
           <div data-hc className="mt-2.5 flex items-center gap-1">

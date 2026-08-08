@@ -30,7 +30,7 @@
   --text-primary: var(--sand-12);
   --text-secondary: var(--sand-11);
   --text-dim2: oklch(0.78 0.02 90);
-  --text-faint2: oklch(0.87 0.02 88 / 0.55);
+  --text-faint2: oklch(0.87 0.02 88 / 0.78);
   --accent-solid: var(--ember-9);
   --accent-text: var(--ember-11);
 
@@ -82,9 +82,25 @@ body {
 @keyframes live-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .live-dot { animation: live-blink 2s ease-in-out infinite; }
 
+/* Entrances are CSS — chrome visibility must never depend on a JS tween completing. */
+@keyframes intro-rise { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+.intro-rise { animation: intro-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes row-rise { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.row-rise { animation: row-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
 @keyframes chyron-in { from { transform: translateY(110%); } to { transform: none; } }
 .chyron-enter { animation: chyron-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ——— accessibility (audit round) ——— */
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,4 +1,4 @@
-// Mirrors the Python FastAPI evidence snapshot — the frozen web data contract.
+// Mirrors supabase/migrations/0001_init.sql — the frozen data contract.
 export type Stage =
   | "concept" | "fel1" | "fel2" | "feed" | "ia" | "fid"
   | "construction" | "cod" | "operational" | "canceled" | "unknown";
