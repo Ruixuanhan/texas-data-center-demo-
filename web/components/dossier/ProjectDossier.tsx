@@ -7,6 +7,7 @@ import {
   type Project, type ProjectAlias, type SourceEvent, type StageHistoryRow, type Stage,
 } from "@/lib/types";
 import { stageHex } from "@/lib/theme";
+import { heatHex, heatScore, whyItMatters } from "@/lib/heat";
 import { ConfidenceMeter, RelativeTime, SeverityTag, StageBadge } from "@/components/atoms";
 
 export function ProjectDossier({
@@ -50,17 +51,29 @@ export function ProjectDossier({
     >
       <header className="border-b border-[var(--line)] px-5 py-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold leading-tight text-[var(--text)]">{project.name}</h2>
-            <p className="mt-0.5 text-[12px] text-[var(--text-dim)]">
+          <div className="min-w-0">
+            <h2 style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600 }} className="text-[21px] leading-tight text-[var(--text)]">
+              {project.name}
+            </h2>
+            <p className="mono mt-1 text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
               {[project.developer, project.county && `${project.county} Co`, project.capacity_mw && `${project.capacity_mw} MW`]
                 .filter(Boolean).join(" · ")}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close dossier"
-            className="mono text-[var(--text-faint)] transition-colors hover:text-[var(--text)]">✕</button>
+          <div className="flex items-center gap-3">
+            <span className="flex flex-col items-end">
+              <span className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-faint)]">heat</span>
+              <span style={{ fontFamily: "var(--font-display), Georgia, serif", color: heatHex(heatScore(project)) }} className="text-[22px] leading-none">
+                {heatScore(project).toFixed(2)}
+              </span>
+            </span>
+            <button onClick={onClose} aria-label="Close dossier"
+              className="mono text-[var(--text-faint)] transition-colors hover:text-[var(--text)]">✕</button>
+          </div>
         </div>
-        {project.headline && <p className="mt-2 text-[12px] italic text-[var(--text-dim)]">{project.headline}</p>}
+        <p className="mt-2.5 border-l-2 pl-2.5 text-[12.5px] italic leading-snug text-[var(--text-dim)]" style={{ borderColor: heatHex(heatScore(project)) }}>
+          {whyItMatters(project, heatScore(project))}
+        </p>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">

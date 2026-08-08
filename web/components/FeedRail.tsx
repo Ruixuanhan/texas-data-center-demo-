@@ -13,11 +13,11 @@ export function FeedRail({
 }) {
   return (
     <aside
-      className="flex h-full w-[var(--rail-w)] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg-raise)]"
+      className="flex h-full w-[var(--rail-w)] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg)]"
       aria-label="Live signal feed"
     >
-      <header className="flex items-center justify-between border-b border-[var(--line)] px-4 py-2.5">
-        <span className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-dim)]">Signal wire</span>
+      <header className="flex items-baseline justify-between border-b border-[var(--line)] px-4 py-2.5">
+        <span style={{ fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic" }} className="text-[15px] text-[var(--text)]">The wire</span>
         <span className="mono flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--live)]">
           <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[var(--live)]" /> live
         </span>

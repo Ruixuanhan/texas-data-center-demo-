@@ -2,21 +2,22 @@
 
 /* ——— Token layer (placeholder neutral-dark; overwritten by winning direction) ——— */
 :root {
-  --bg: #0a0e12;
-  --bg-raise: #11161c;
-  --bg-panel: #151b23;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --text: #e6edf3;
-  --text-dim: #8b98a5;
-  --text-faint: #55616e;
-  --accent: #3ddad7;
-  --signal-low: #8b98a5;
+  /* Committed direction: textured near-black theater, warm signal accents, editorial type. */
+  --bg: #0a0e13;
+  --bg-raise: #0e131a;
+  --bg-panel: #131a23;
+  --line: rgba(224, 210, 187, 0.09);
+  --line-strong: rgba(224, 210, 187, 0.18);
+  --text: #e9e4da;
+  --text-dim: #9a958a;
+  --text-faint: #5f5c54;
+  --accent: #ffb454;
+  --signal-low: #8b8478;
   --signal-notable: #ffb454;
-  --signal-major: #ff4d4d;
-  --live: #3ddad7;
+  --signal-major: #ff5d49;
+  --live: #ffd8a8;
   --font-ui: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  --font-mono: var(--font-plex), ui-monospace, "SF Mono", Menlo, monospace;
   --rail-w: 380px;
 }
 
