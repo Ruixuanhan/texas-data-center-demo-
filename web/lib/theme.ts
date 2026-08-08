@@ -28,17 +28,31 @@ export const stageHex = (s: Stage) =>
 
 // sRGB mirrors of the OKLCH deep scale for consumers that can't parse oklch()
 // (MapLibre paint properties, GSAP color tweens). Source of truth: tokens/dataplanner.tokens.json.
+// The la-phase-5 read: land is dark designed slate, water darker still, and the
+// street/grid linework is BRIGHT — the drawing carries the map, not imagery.
 export const WORLD = {
-  water: "#17323f",
-  land: "#26404f",
-  park: "#23473f",
-  background: "#223c4b",
-  hillshadeShadow: "#0e1e29",
-  hillshadeHighlight: "#4f6b80",
-  hillshadeAccent: "#2b4456",
-  roadMajor: "rgba(230,242,250,0.36)",
-  roadMinor: "rgba(230,242,250,0.16)",
-  boundary: "rgba(230,242,250,0.13)",
-  countyLine: "rgba(230,242,250,0.10)",
+  water: "#16212d",
+  land: "#232f3c",
+  park: "#20302e",
+  background: "#1b2733",
+  roadMajor: "rgba(232,242,252,0.50)",
+  roadMinor: "rgba(232,242,252,0.22)",
+  boundary: "rgba(232,242,252,0.16)",
+  countyLine: "rgba(232,242,252,0.13)",
   chromeHex: "#33495c",
 } as const;
+
+// Authored hypsometric ramp — WE color the elevation (Imhof tradition), the land is
+// designed, not filtered. Meters above sea level → petrol coast, sage hill country,
+// clay Permian shelf, bone caprock. Low chroma so data stays the only loud color.
+export const RELIEF_RAMP: [number, string][] = [
+  [0, "#1e3a47"],
+  [120, "#24464f"],
+  [350, "#2f5152"],
+  [650, "#3f5a51"],
+  [950, "#5d5c4c"],
+  [1300, "#75634e"],
+  [1800, "#8f7a5c"],
+  [2300, "#ab9573"],
+  [2667, "#c2b18d"],
+];

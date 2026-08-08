@@ -1,28 +1,34 @@
 "use client";
-// The hero, v3 — la-phase-5 material language on live data.
-//   world:      deep slate-blue terrain, white hairline streets, peach building mass on fly-in
-//   matter:     projects as lit monomaterial volumes — DC cylinders, gas 4-sided obelisks
-//   lens:       heat ramp (slate → clay → peach → ember) + DC↔gas pairing tethers
-//   typography: serif cities + spaced region names as cartographic objects
-//   motion:     intro flight, pulses, filing arcs, deep fly-in to street level on select
-import { useEffect, useRef } from "react";
+// The hero, v4 — the la-phase-5 diorama read, honestly this time:
+//   world:      FLAT designed land (no imagery, no relief) — dark slate ground, darker water,
+//               BRIGHT grid linework; Texas fills the frame
+//   assets:     prefab GLB buildings (data-center campus / gas plant) at landmark scale,
+//               heat-tinted, crowd-aware; procedural blocks remain only as a fallback
+//               until the models load
+//   progress:   fused INTO each asset — a beam of light rising from the building,
+//               height = how far up the FEL ladder the project has climbed
+//   motion:     intro flight, pulses, filing arcs, BTM tethers, deep fly-in on select
+import { useEffect, useRef, useState } from "react";
 import { Map as MapLibreMap, setWorkerUrl, type IControl } from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
-import { ScatterplotLayer, TextLayer, ArcLayer, PolygonLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PolygonLayer } from "@deck.gl/layers";
+import { ScenegraphLayer } from "@deck.gl/mesh-layers";
+import { GLTFLoader } from "@loaders.gl/gltf";
 import type { Project, SourceEvent } from "@/lib/types";
+import { STAGE_LADDER } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
-import { buildCampus, buildProgressChart, builtOpacity, campusScale, type CampusBlock, type ProgressRung } from "@/lib/campus";
-import { STAGE_COLORS, WORLD } from "@/lib/theme";
+import { buildCampus, builtOpacity, campusScale, type CampusBlock } from "@/lib/campus";
+import { WORLD } from "@/lib/theme";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
 setWorkerUrl("/maplibre-gl-worker.mjs");
 
 const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
-const HOME = { center: [-99.0, 31.1] as [number, number], zoom: 5.55, pitch: 44, bearing: -9 };
+// Texas fills the frame — closer, central, cropped edges are intentional.
+const HOME = { center: [-98.9, 31.15] as [number, number], zoom: 6.05, pitch: 42, bearing: -9 };
 
-// One warm key light from the north-west, like the reference diorama.
 const LIGHTING = new LightingEffect({
   ambient: new AmbientLight({ color: [226, 232, 244], intensity: 1.15 }),
   key: new DirectionalLight({ color: [255, 226, 196], intensity: 1.5, direction: [-2, -3, -1.2] }),
@@ -43,11 +49,11 @@ const CITIES: { name: string; pos: [number, number]; major?: boolean }[] = [
 ];
 
 const REGIONS: { name: string; pos: [number, number]; size: number }[] = [
-  { name: "GULF OF MEXICO", pos: [-95.6, 27.35], size: 15 },
-  { name: "PERMIAN BASIN", pos: [-102.7, 31.55], size: 12 },
-  { name: "HILL COUNTRY", pos: [-99.35, 30.25], size: 11 },
-  { name: "EAST TEXAS", pos: [-94.95, 31.9], size: 11 },
-  { name: "PANHANDLE", pos: [-101.45, 35.35], size: 11 },
+  { name: "GULF OF MEXICO", pos: [-95.6, 27.6], size: 17 },
+  { name: "PERMIAN BASIN", pos: [-102.6, 31.55], size: 13 },
+  { name: "HILL COUNTRY", pos: [-99.35, 30.25], size: 12 },
+  { name: "EAST TEXAS", pos: [-94.95, 31.9], size: 12 },
+  { name: "PANHANDLE", pos: [-101.45, 35.2], size: 12 },
 ];
 const spaced = (s: string) => s.split("").join(" ").replace(/   /g, "   ");
 
@@ -71,6 +77,23 @@ const arcOrigin = (e: SourceEvent, p: Project): [number, number] => {
 
 interface LiveArc { id: string; event: SourceEvent; project: Project; bornAt: number }
 const ARC_TTL = 8000;
+
+// Landmark scale: assets are diorama pieces at state view, true scale at street view.
+const assetScale = (zoom: number) => Math.min(300, Math.max(1, 2 ** ((11.8 - zoom) * 1.4)));
+
+// Progress → the height of the light beam rising from the asset.
+const progressFrac = (p: Project): number => {
+  if (p.current_stage === "operational" || p.current_stage === "cod") return 1;
+  if (p.current_stage === "canceled") return 0;
+  const i = STAGE_LADDER.indexOf(p.current_stage);
+  return i < 0 ? 0.3 : (i + 1) / STAGE_LADDER.length;
+};
+
+// deterministic per-slug yaw so campuses sit at varied angles
+const slugYaw = (slug: string) => {
+  let h = 0; for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) | 0;
+  return (h % 360 + 360) % 360;
+};
 
 export interface HoverInfo { project: Project; heat: number; x: number; y: number }
 
@@ -101,10 +124,39 @@ export function MapCanvas({
   const arcsRef = useRef<LiveArc[]>([]);
   const arcSeen = useRef<Set<string>>(new Set());
   const countyWashRef = useRef<(() => void) | null>(null);
-  const stateRef = useRef({ projects, projectIndex, feed, hot, pairs, pairedIds, selectedId });
-  stateRef.current = { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId };
+  const crowdRef = useRef<Map<string, number>>(new Map());
+  const [modelsReady, setModelsReady] = useState(false);
+  const stateRef = useRef({ projects, projectIndex, feed, hot, pairs, pairedIds, selectedId, modelsReady });
+  stateRef.current = { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId, modelsReady };
 
-  // data-driven county warmth: counties glow faintly with the MW they carry
+  // prefab models become active the moment they exist on disk
+  useEffect(() => {
+    let live = true;
+    const probe = () =>
+      Promise.all([fetch("/models/datacenter.glb", { method: "HEAD" }), fetch("/models/powerplant.glb", { method: "HEAD" })])
+        .then(([a, b]) => { if (live && a.ok && b.ok) setModelsReady(true); else if (live) setTimeout(probe, 4000); })
+        .catch(() => { if (live) setTimeout(probe, 4000); });
+    probe();
+    return () => { live = false; };
+  }, []);
+
+  // crowding factor: clustered metros shrink their landmarks so they don't melt together
+  useEffect(() => {
+    const placed = projects.filter((p) => p.lat != null && p.lon != null);
+    const m = new Map<string, number>();
+    for (const a of placed) {
+      let nearest = Infinity;
+      for (const b of placed) {
+        if (a.id === b.id) continue;
+        const dx = (a.lon! - b.lon!) * 91, dy = (a.lat! - b.lat!) * 110.6;
+        nearest = Math.min(nearest, Math.hypot(dx, dy));
+      }
+      m.set(a.id, Math.min(1, Math.max(0.5, nearest / 28)));
+    }
+    crowdRef.current = m;
+  }, [projects]);
+
+  // data-driven county warmth
   useEffect(() => {
     const apply = () => {
       const map = mapRef.current;
@@ -129,19 +181,25 @@ export function MapCanvas({
     const map = new MapLibreMap({
       container: containerRef.current,
       style: BASEMAP,
-      center: [-98.5, 30.6],
-      zoom: 4.3,
+      center: [-98.6, 30.9],
+      zoom: 5.1,
       pitch: 0,
       bearing: 0,
+      minZoom: 5.0,
       attributionControl: { compact: true },
-      maxPitch: 62,
+      maxPitch: 60,
     });
     const overlay = new MapboxOverlay({ interleaved: false, layers: [], effects: [LIGHTING] });
     map.addControl(overlay as unknown as IControl);
     mapRef.current = map;
 
+    // Embedded panes can settle their layout after map init — maplibre's own
+    // trackResize misses it, so we drive resize explicitly.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     map.on("load", () => {
-      // ——— world re-ink from the token scale: petrol steps 1–2, brighter and more chromatic ———
+      // ——— the designed world: flat dark land, darker water, BRIGHT drawing ———
       try {
         for (const layer of map.getStyle().layers ?? []) {
           if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", WORLD.background);
@@ -154,6 +212,7 @@ export function MapCanvas({
             if (road) {
               const majorRoad = /motorway|trunk|highway|primary/i.test(layer.id);
               map.setPaintProperty(layer.id, "line-color", majorRoad ? WORLD.roadMajor : WORLD.roadMinor);
+              if (majorRoad) try { map.setPaintProperty(layer.id, "line-width", ["interpolate", ["linear"], ["zoom"], 5, 0.9, 8, 1.6, 12, 3]); } catch {}
             } else if (boundary) {
               map.setPaintProperty(layer.id, "line-color", WORLD.boundary);
             }
@@ -161,28 +220,7 @@ export function MapCanvas({
         }
       } catch { /* basemap ids shift between versions; re-ink is best-effort */ }
 
-      // ——— terrain relief, tuned to slate ———
-      map.addSource("dem", {
-        type: "raster-dem",
-        tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
-        encoding: "terrarium",
-        tileSize: 256,
-        maxzoom: 12,
-        attribution: "Terrain: Mapzen/AWS",
-      });
-      map.addLayer({
-        id: "hillshade",
-        type: "hillshade",
-        source: "dem",
-        paint: {
-          "hillshade-exaggeration": 0.75,
-          "hillshade-shadow-color": WORLD.hillshadeShadow,
-          "hillshade-highlight-color": WORLD.hillshadeHighlight,
-          "hillshade-accent-color": WORLD.hillshadeAccent,
-        },
-      });
-
-      // ——— counties: activity wash (data-driven warmth) under hairlines ———
+      // counties: activity wash + hairlines
       map.addSource("counties", { type: "geojson", data: "/tx-counties.json" });
       map.addLayer({
         id: "county-heat",
@@ -196,19 +234,16 @@ export function MapCanvas({
         source: "counties",
         paint: {
           "line-color": WORLD.countyLine,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 8, 0.9],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 1.0],
         },
       });
-      countyWashRef.current?.(); // apply wash if projects already arrived
+      countyWashRef.current?.();
 
-      // NOTE: no generic building/landuse extrusions — the only 3D matter on this map
-      // is the tracked assets themselves (data-center halls, plant stacks). Geography stays flat.
-
-      map.flyTo({ ...HOME, duration: 3200, essential: true });
+      map.flyTo({ ...HOME, duration: 2800, essential: true });
     });
 
     const render = (now: number) => {
-      const { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId } = stateRef.current;
+      const { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId, modelsReady } = stateRef.current;
       const placed = projects.filter((p) => p.lat != null && p.lon != null);
       const t = (now % 2200) / 2200;
       const scored = placed.map((p) => ({ p, h: heatScore(p, { paired: pairedIds.has(p.id) }) }));
@@ -229,27 +264,69 @@ export function MapCanvas({
       }
       arcsRef.current = arcsRef.current.filter((a) => now - a.bornAt < ARC_TTL);
 
-      // asset architecture: campuses regenerate as the camera zooms (sculptural far, true-scale near)
-      const scale = campusScale(map.getZoom());
-      const campusData: Array<{ p: Project; h: number; block: CampusBlock }> = [];
-      for (const s of scored) for (const block of buildCampus(s.p, scale)) campusData.push({ p: s.p, h: s.h, block });
+      const zoom = map.getZoom();
+      const scale = assetScale(zoom);
+      const crowd = crowdRef.current;
+      const sizeOf = (p: Project) => scale * (crowd.get(p.id) ?? 1);
 
-      // progress staircases: the top-rank DCs, the selection, and its paired plant earn one
-      const chartIds = new Set<string>(topHot.map(({ p }) => p.id));
-      if (selectedId) {
-        chartIds.add(selectedId);
-        const pr = pairs.find((x) => x.dcId === selectedId || x.gasId === selectedId);
-        if (pr) { chartIds.add(pr.dcId); chartIds.add(pr.gasId); }
-      }
-      const chartData: Array<{ p: Project; h: number; rung: ProgressRung }> = [];
-      for (const s of scored) {
-        if (!chartIds.has(s.p.id)) continue;
-        for (const rung of buildProgressChart(s.p, scale)) chartData.push({ p: s.p, h: s.h, rung });
-      }
+      // asset layers: prefab GLB landmarks once loaded; procedural fallback until then
+      const assetLayers = modelsReady
+        ? [
+            new ScenegraphLayer<{ p: Project; h: number }>({
+              id: "dc-models",
+              data: dcs,
+              scenegraph: "/models/datacenter.glb",
+              loaders: [GLTFLoader],
+              pickable: true,
+              sizeScale: 1,
+              getPosition: ({ p }) => [p.lon!, p.lat!],
+              getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
+              getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
+              getColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : builtOpacity(p)] as never,
+              _lighting: "pbr",
+              onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
+              onHover: (info) =>
+                onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
+              updateTriggers: { getColor: [selectedId], getScale: scale },
+            }),
+            new ScenegraphLayer<{ p: Project; h: number }>({
+              id: "gas-models",
+              data: gas,
+              scenegraph: "/models/powerplant.glb",
+              loaders: [GLTFLoader],
+              pickable: true,
+              sizeScale: 1,
+              getPosition: ({ p }) => [p.lon!, p.lat!],
+              getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
+              getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
+              getColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : builtOpacity(p)] as never,
+              _lighting: "pbr",
+              onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
+              onHover: (info) =>
+                onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
+              updateTriggers: { getColor: [selectedId], getScale: scale },
+            }),
+          ]
+        : [
+            new PolygonLayer<{ p: Project; h: number; block: CampusBlock }>({
+              id: "campus-fallback",
+              data: scored.flatMap((s) => buildCampus(s.p, campusScale(zoom)).map((block) => ({ ...s, block }))),
+              pickable: true,
+              extruded: true,
+              material: MATERIAL,
+              getPolygon: (d) => d.block.polygon,
+              getElevation: (d) => d.block.height * Math.max(1, campusScale(zoom) * 0.85),
+              getFillColor: (d) => [...heatColor(d.h), d.p.id === selectedId ? 250 : builtOpacity(d.p)] as never,
+              onClick: (info) => onSelect(info.object ? info.object.p.id : null),
+              onHover: (info) =>
+                onHover?.(info.object ? { project: info.object.p, heat: info.object.h, x: info.x, y: info.y } : null),
+              updateTriggers: { getPolygon: zoom, getElevation: zoom, getFillColor: [selectedId] },
+            }),
+          ];
 
       overlay.setProps({
         layers: [
-          // pairing tethers — the behind-the-meter story drawn as low power lines
+          // BTM pairing tethers
           new ArcLayer({
             id: "tethers",
             data: tethers,
@@ -260,7 +337,7 @@ export function MapCanvas({
             getWidth: 2,
             getHeight: 0.9,
           }),
-          // filing arcs — a document flying from its agency to the site
+          // filing arcs
           new ArcLayer<LiveArc>({
             id: "arcs",
             data: arcsRef.current,
@@ -278,7 +355,7 @@ export function MapCanvas({
             id: "pulse",
             data: scored.filter(({ p }) => hot.has(p.id)),
             getPosition: ({ p }) => [p.lon!, p.lat!],
-            getRadius: () => 5000 + t * 30000,
+            getRadius: () => 6000 + t * 34000,
             getLineColor: ({ h }) => [...heatColor(h), Math.round(210 * (1 - t))] as never,
             stroked: true,
             filled: false,
@@ -286,58 +363,45 @@ export function MapCanvas({
             radiusUnits: "meters",
             updateTriggers: { getRadius: t, getLineColor: t },
           }),
-          // the assets themselves as sculpted matter — server halls, stacks, switchyards
-          new PolygonLayer<{ p: Project; h: number; block: CampusBlock }>({
-            id: "campuses",
-            data: campusData,
-            pickable: true,
+          ...assetLayers,
+          // PROGRESS AS LIGHT — a beam rising from each asset; height = ladder progress.
+          // Soft outer glow + bright core, so the building and its trajectory are one object.
+          new ColumnLayer<{ p: Project; h: number }>({
+            id: "beam-glow",
+            data: scored.filter(({ p }) => p.current_stage !== "canceled"),
+            diskResolution: 10,
+            radius: 55 * scale,
             extruded: true,
-            material: MATERIAL,
-            autoHighlight: true,
-            highlightColor: [255, 242, 224, 70],
-            getPolygon: (d) => d.block.polygon,
-            getElevation: (d) => d.block.height * Math.max(1, scale * 0.85),
-            getFillColor: (d) => {
-              const c = heatColor(d.block.kind === "stack" ? Math.min(1, d.h + 0.12) : d.h);
-              const alpha = d.p.id === selectedId ? 250 : builtOpacity(d.p);
-              return [c[0], c[1], c[2], alpha] as [number, number, number, number];
-            },
-            getLineColor: [16, 24, 34, 255],
-            getLineWidth: 1,
-            lineWidthUnits: "pixels",
-            stroked: false,
-            onClick: (info) => onSelect(info.object ? info.object.p.id : null),
-            onHover: (info) =>
-              onHover?.(info.object ? { project: info.object.p, heat: info.object.h, x: info.x, y: info.y } : null),
-            updateTriggers: { getPolygon: scale, getElevation: scale, getFillColor: [selectedId, scale] },
+            getPosition: ({ p }) => [p.lon!, p.lat!],
+            getElevation: ({ p }) => 560 * progressFrac(p) * sizeOf(p),
+            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 90 : 48] as never,
+            updateTriggers: { getElevation: scale, getFillColor: [selectedId], getRadius: scale },
           }),
-          // progress as matter: stage-ladder staircases beside the hottest campuses
-          new PolygonLayer<{ p: Project; h: number; rung: ProgressRung }>({
-            id: "progress-charts",
-            data: chartData,
+          new ColumnLayer<{ p: Project; h: number }>({
+            id: "beam-core",
+            data: scored.filter(({ p }) => p.current_stage !== "canceled"),
+            diskResolution: 10,
+            radius: 18 * scale,
             extruded: true,
-            material: MATERIAL,
-            getPolygon: (d) => d.rung.polygon,
-            // charts stay readable even at true-scale street zoom
-            getElevation: (d) => d.rung.height * Math.max(2.4, scale * 0.85),
-            getFillColor: (d) => {
-              if (!d.rung.achieved) return [120, 132, 148, 60];
-              const c = STAGE_COLORS[d.rung.rung];
-              return [c[0], c[1], c[2], d.rung.current ? 250 : 205] as [number, number, number, number];
+            getPosition: ({ p }) => [p.lon!, p.lat!],
+            getElevation: ({ p }) => 560 * progressFrac(p) * sizeOf(p),
+            getFillColor: ({ p, h }) => {
+              const c = p.id === selectedId ? [255, 250, 240] : heatColor(Math.min(1, h + 0.15));
+              return [c[0], c[1], c[2], p.id === selectedId ? 235 : 165] as never;
             },
-            updateTriggers: { getPolygon: scale, getElevation: scale },
+            updateTriggers: { getElevation: scale, getFillColor: [selectedId], getRadius: scale },
           }),
-          // ground anchors (readability at flat angles + generous click target)
+          // ground anchors (small-zoom click targets)
           new ScatterplotLayer({
             id: "anchors",
             data: scored,
             pickable: true,
             getPosition: ({ p }) => [p.lon!, p.lat!],
-            getRadius: ({ p }) => 1800 + Math.sqrt(p.capacity_mw ?? 6) * 900,
-            radiusMinPixels: 2.5,
-            radiusMaxPixels: 14,
-            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : 170] as never,
-            getLineColor: ({ p }) => (p.id === selectedId ? [255, 250, 240, 255] : [12, 17, 24, 220]) as never,
+            getRadius: ({ p }) => 2200 + Math.sqrt(p.capacity_mw ?? 6) * 1000,
+            radiusMinPixels: 3,
+            radiusMaxPixels: 16,
+            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : 175] as never,
+            getLineColor: ({ p }) => (p.id === selectedId ? [255, 250, 240, 255] : [14, 20, 28, 220]) as never,
             getLineWidth: ({ p }) => (p.id === selectedId ? 2.2 : 1),
             lineWidthUnits: "pixels",
             stroked: true,
@@ -345,53 +409,50 @@ export function MapCanvas({
             onHover: (info) => onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
             updateTriggers: { getFillColor: [selectedId], getLineColor: selectedId, getLineWidth: selectedId },
           }),
-          // regions — quiet spaced caps, the cartographic undertone
+          // regions + cities + hot project names
           new TextLayer({
             id: "region-labels",
             data: REGIONS,
             getPosition: (r) => r.pos,
             getText: (r) => spaced(r.name),
             getSize: (r) => r.size,
-            getColor: [196, 208, 226, 78],
+            getColor: [200, 212, 230, 84],
             fontFamily: '"Fraunces", Georgia, "Times New Roman", serif',
             fontWeight: 400,
             outlineWidth: 2,
-            outlineColor: [10, 15, 22, 200],
+            outlineColor: [12, 18, 26, 200],
             fontSettings: { sdf: true },
           }),
-          // cities — editorial serif objects
           new TextLayer({
             id: "city-labels",
             data: CITIES,
             getPosition: (c) => c.pos,
             getText: (c) => c.name.toUpperCase(),
-            getSize: (c) => (c.major ? 15 : 11.5),
-            getColor: (c) => (c.major ? [226, 220, 208, 175] : [186, 182, 172, 115]),
+            getSize: (c) => (c.major ? 16 : 12),
+            getColor: (c) => (c.major ? [230, 224, 212, 185] : [190, 186, 176, 120]),
             fontFamily: '"Fraunces", Georgia, "Times New Roman", serif',
             fontWeight: 500,
             getTextAnchor: "start",
             getAlignmentBaseline: "center",
             getPixelOffset: [10, 0],
             outlineWidth: 3,
-            outlineColor: [10, 15, 22, 235],
+            outlineColor: [12, 18, 26, 235],
             fontSettings: { sdf: true },
           }),
-          // hottest projects earn their names on the map
           new TextLayer({
             id: "project-labels",
             data: topHot,
             getPosition: ({ p }) => [p.lon!, p.lat!],
             getText: ({ p }) => `${p.name.length > 26 ? p.name.slice(0, 24) + "…" : p.name}  ·  ${p.capacity_mw ? Math.round(p.capacity_mw) + " MW" : "— MW"}`,
-            getSize: 11,
-            getColor: ({ h }) => [...heatColor(Math.max(h, 0.5)), 235] as never,
+            getSize: 11.5,
+            getColor: ({ h }) => [...heatColor(Math.max(h, 0.5)), 240] as never,
             fontFamily: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
             fontWeight: 500,
             getTextAnchor: "start",
             getAlignmentBaseline: "bottom",
-            // stagger labels so clustered metros (DFW) don't pile up
-            getPixelOffset: (d: { rank: number }) => [10 + (d.rank % 2) * 6, -12 - d.rank * 13],
+            getPixelOffset: (d: { rank: number }) => [12 + (d.rank % 2) * 6, -14 - d.rank * 13],
             outlineWidth: 4,
-            outlineColor: [10, 15, 22, 245],
+            outlineColor: [12, 18, 26, 245],
             fontSettings: { sdf: true },
           }),
         ],
@@ -402,13 +463,14 @@ export function MapCanvas({
 
     return () => {
       cancelAnimationFrame(frameRef.current);
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // deep cinematic fly-in on selection — street level, buildings rise
+  // deep cinematic fly-in on selection
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selectedId) return;
@@ -416,23 +478,22 @@ export function MapCanvas({
     if (p?.lat != null && p?.lon != null) {
       map.flyTo({
         center: [p.lon, p.lat],
-        zoom: 12.6,
-        pitch: 56,
-        bearing: -22,
+        zoom: 11.6,
+        pitch: 54,
+        bearing: -20,
         speed: 0.8,
-        curve: 1.55,
+        curve: 1.5,
         padding: { left: 500, top: 0, right: 0, bottom: 0 },
         essential: true,
       });
     }
   }, [selectedId, projects]);
 
-  // release camera back to the state view when dossier closes
   const hadSelection = useRef(false);
   useEffect(() => {
     if (selectedId) { hadSelection.current = true; return; }
     if (hadSelection.current && mapRef.current) {
-      mapRef.current.flyTo({ ...HOME, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 2400, essential: true });
+      mapRef.current.flyTo({ ...HOME, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 2200, essential: true });
     }
   }, [selectedId]);
 
@@ -441,14 +502,13 @@ export function MapCanvas({
       {/* maplibre-gl.css sets .maplibregl-map{position:relative} which beats the Tailwind
           class (later import, same specificity) — inline styles win, hence this wrapper. */}
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-      {/* texture: dusk sky wash + grain + vignette above tiles, below UI */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "linear-gradient(180deg, rgba(96,88,138,0.12) 0%, rgba(255,154,90,0.055) 20%, transparent 44%)",
+        background: "linear-gradient(180deg, rgba(96,98,150,0.09) 0%, rgba(255,170,110,0.03) 22%, transparent 42%)",
       }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(120% 95% at 46% 42%, transparent 55%, rgba(10,18,26,0.42) 100%)",
+        background: "radial-gradient(120% 95% at 46% 42%, transparent 56%, rgba(10,16,24,0.4) 100%)",
       }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.05, mixBlendMode: "overlay",

@@ -64,25 +64,12 @@ export default function Home() {
     return other ? { other, km: pr.km } : null;
   }, [selectedId, pairs, projects]);
 
-  // entrance: masthead and ops list arrive with the intro camera flight
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo("[data-intro]", { y: -14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.8, stagger: 0.09, ease: "power3.out", delay: 0.35 });
-    }, headerRef);
-    return () => ctx.revert();
-  }, []);
-  useEffect(() => {
-    if (!opsRef.current || topOps.length === 0) return;
-    const rows = opsRef.current.querySelectorAll("[data-ops-row]");
-    gsap.fromTo(rows, { x: -18, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.5, stagger: 0.07, ease: "power3.out" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topOps.length > 0]);
+  // entrances are CSS (.intro-rise / .row-rise) — see globals.css; GSAP handles accents only
 
   return (
     <main className="flex flex-col" style={{ height: "100vh" }}>
       <header ref={headerRef} className="z-20 flex items-end gap-12 border-b border-[var(--border-subtle)] bg-[var(--surface-chrome)] px-6 pb-3 pt-3">
-        <h1 data-intro className="flex flex-col leading-none">
+        <h1 data-intro className="intro-rise flex flex-col leading-none" style={{ animationDelay: "0.25s" }}>
           {/* wordmark: upright/italic contrast pair + ember full stop — one voice, one gesture */}
           <span className="whitespace-nowrap text-[23px] tracking-tight text-[var(--ink)]" style={{ fontFamily: "var(--font-display), Georgia, serif" }}>
             <span style={{ fontWeight: 420 }}>Data</span>
@@ -92,13 +79,13 @@ export default function Home() {
           <span className="mono mt-1 text-[8.5px] uppercase tracking-[0.3em] text-[var(--ink-faint)]">energy capex · early warning</span>
         </h1>
         <div className="flex items-end gap-12">
-          <div data-intro><Kpi label="Projects tracked" value={list.length} /></div>
-          <div data-intro><Kpi label="DC load pipeline" value={totalMw.toLocaleString()} unit="MW" /></div>
-          <div data-intro><Kpi label="Pre-FEED window" value={earlyCount} hot /></div>
-          <div data-intro><Kpi label="BTM pairings" value={pairs.length} /></div>
-          <div data-intro><Kpi label="Signals today" value={signalsToday} /></div>
+          <div data-intro className="intro-rise" style={{ animationDelay: "0.35s" }}><Kpi label="Projects tracked" value={list.length} /></div>
+          <div data-intro className="intro-rise" style={{ animationDelay: "0.44s" }}><Kpi label="DC load pipeline" value={totalMw.toLocaleString()} unit="MW" /></div>
+          <div data-intro className="intro-rise" style={{ animationDelay: "0.53s" }}><Kpi label="Pre-FEED window" value={earlyCount} hot /></div>
+          <div data-intro className="intro-rise" style={{ animationDelay: "0.62s" }}><Kpi label="BTM pairings" value={pairs.length} /></div>
+          <div data-intro className="intro-rise" style={{ animationDelay: "0.71s" }}><Kpi label="Signals today" value={signalsToday} /></div>
         </div>
-        <span data-intro className="mono ml-auto flex items-center gap-2 pb-1 text-[10px] uppercase tracking-[0.25em] text-[var(--ink-dim)]">
+        <span data-intro style={{ animationDelay: "0.8s" }} className="intro-rise mono ml-auto flex items-center gap-2 pb-1 text-[10px] uppercase tracking-[0.25em] text-[var(--ink-dim)]">
           <span className={`live-dot inline-block h-1.5 w-1.5 rounded-full ${connected === "connecting" ? "bg-[var(--signal-notable)]" : "bg-[var(--ember-ink)]"}`} />
           {connected === "connecting" ? "connecting" : "live"}
         </span>
@@ -130,7 +117,7 @@ export default function Home() {
             </h2>
             <ol>
               {topOps.map(({ p, h }, i) => (
-                <li key={p.id} data-ops-row>
+                <li key={p.id} data-ops-row className="row-rise" style={{ animationDelay: `${i * 0.07}s` }}>
                   <button
                     onClick={() => setSelectedId(p.id)}
                     className="group flex w-full items-center gap-3 border-t border-[var(--line)] py-2 text-left transition-colors hover:bg-[rgba(255,255,255,0.04)]"
