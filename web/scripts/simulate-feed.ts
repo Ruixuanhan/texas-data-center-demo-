@@ -2,16 +2,16 @@
  * Project Radar — seed + live feed simulator.
  *   bun scripts/simulate-feed.ts --seed   backfill projects, aliases, stage history, ~200 backdated events
  *   bun scripts/simulate-feed.ts --live   insert a plausible event every 20–60s (stage change ~10% of the time)
- * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (run via: doppler run -- bun scripts/simulate-feed.ts --seed)
+ * Requires SUPABASE_URL + SUPABASE_SECRET_KEY (run via: doppler run -- bun scripts/simulate-feed.ts --seed)
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = process.env.SUPABASE_SECRET_KEY;
 if (!url || !key) {
-  console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (use `doppler run --`)");
+  console.error("Missing SUPABASE_URL / SUPABASE_SECRET_KEY (use `doppler run --`)");
   process.exit(1);
 }
 const db = createClient(url, key, { auth: { persistSession: false } });

@@ -18,7 +18,7 @@ export default function Home() {
   const earlyCount = useMemo(() => list.filter((p) => STAGE_LADDER.slice(0, 4).includes(p.current_stage)).length, [list]);
 
   return (
-    <main className="flex h-dvh flex-col">
+    <main className="flex flex-col" style={{ height: "100vh" }}>
       <header className="flex items-center gap-10 border-b border-[var(--line)] bg-[var(--bg-raise)] px-5 py-2.5">
         <h1 className="mono text-sm font-semibold uppercase tracking-[0.3em] text-[var(--text)]">
           Radar<span className="text-[var(--accent)]">/</span>TX

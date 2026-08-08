@@ -3,7 +3,11 @@
 // Layers: base scatter (MW-scaled, stage-colored) + animated pulse rings on "hot"
 // projects (those that fired a signal in the last few seconds).
 import { useEffect, useRef } from "react";
-import { Map as MapLibreMap, type IControl } from "maplibre-gl";
+import { Map as MapLibreMap, setWorkerUrl, type IControl } from "maplibre-gl";
+
+// Turbopack dev can't resolve maplibre's module-worker URL (serves the 404 page as
+// text/html → worker dies → no style/tiles). Serve the dist worker statically instead.
+setWorkerUrl("/maplibre-gl-worker.mjs");
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import type { Project } from "@/lib/types";
@@ -111,5 +115,8 @@ export function MapCanvas({
     }
   }, [selectedId, projects]);
 
-  return <div ref={containerRef} className="absolute inset-0" role="application" aria-label="Texas project map" />;
+  // Inline style: maplibre-gl.css sets .maplibregl-map{position:relative}, which would
+  // override the Tailwind `absolute` class (same specificity, later import) and collapse
+  // the container to zero height. Inline wins.
+  return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} role="application" aria-label="Texas project map" />;
 }
