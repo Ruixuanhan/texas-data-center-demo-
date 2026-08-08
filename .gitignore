@@ -7,3 +7,5 @@ __pycache__/
 *.sqlite3
 data/raw/*
 !data/raw/.gitkeep
+.dev-logs/
+*.log
