@@ -1,15 +1,17 @@
 "use client";
-// The hero, v2 — textured typographic cartography with investor heat.
-//   texture:    terrarium hillshade + county hairlines + tuned water/land inks + grain/vignette
-//   matter:     MW as extruded columns (pitched camera), heat ramp = money temperature
-//   typography: city + hot-project labels rendered as cartographic objects (deck TextLayer)
-//   motion:     intro flight, pulse rings + filing arcs on live events, fly-to on select
+// The hero, v3 — la-phase-5 material language on live data.
+//   world:      deep slate-blue terrain, white hairline streets, peach building mass on fly-in
+//   matter:     projects as lit monomaterial volumes — DC cylinders, gas 4-sided obelisks
+//   lens:       heat ramp (slate → clay → peach → ember) + DC↔gas pairing tethers
+//   typography: serif cities + spaced region names as cartographic objects
+//   motion:     intro flight, pulses, filing arcs, deep fly-in to street level on select
 import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, setWorkerUrl, type IControl } from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
+import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
 import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer } from "@deck.gl/layers";
 import type { Project, SourceEvent } from "@/lib/types";
-import { heatColor, heatScore } from "@/lib/heat";
+import { heatColor, heatScore, type Pair } from "@/lib/heat";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
@@ -17,6 +19,13 @@ setWorkerUrl("/maplibre-gl-worker.mjs");
 
 const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
 const HOME = { center: [-99.0, 31.1] as [number, number], zoom: 5.55, pitch: 44, bearing: -9 };
+
+// One warm key light from the north-west, like the reference diorama.
+const LIGHTING = new LightingEffect({
+  ambient: new AmbientLight({ color: [226, 232, 244], intensity: 1.15 }),
+  key: new DirectionalLight({ color: [255, 226, 196], intensity: 1.5, direction: [-2, -3, -1.2] }),
+});
+const MATERIAL = { ambient: 0.5, diffuse: 0.75, shininess: 90, specularColor: [255, 224, 190] as [number, number, number] };
 
 const CITIES: { name: string; pos: [number, number]; major?: boolean }[] = [
   { name: "Dallas", pos: [-96.797, 32.777], major: true },
@@ -31,7 +40,15 @@ const CITIES: { name: string; pos: [number, number]; major?: boolean }[] = [
   { name: "Corpus Christi", pos: [-97.396, 27.8] },
 ];
 
-// Where a filing "comes from" — the arc's origin.
+const REGIONS: { name: string; pos: [number, number]; size: number }[] = [
+  { name: "GULF OF MEXICO", pos: [-95.6, 27.35], size: 15 },
+  { name: "PERMIAN BASIN", pos: [-102.7, 31.55], size: 12 },
+  { name: "HILL COUNTRY", pos: [-99.35, 30.25], size: 11 },
+  { name: "EAST TEXAS", pos: [-94.95, 31.9], size: 11 },
+  { name: "PANHANDLE", pos: [-101.45, 35.35], size: 11 },
+];
+const spaced = (s: string) => s.split("").join(" ").replace(/   /g, "   ");
+
 const AGENCY: Record<string, [number, number]> = {
   puct: [-97.743, 30.267], tceq: [-97.743, 30.267], rrc: [-97.743, 30.267],
   ercot_gis: [-97.743, 30.267], ercot_rioo: [-97.743, 30.267], ercot_mora: [-97.743, 30.267],
@@ -58,6 +75,8 @@ export function MapCanvas({
   projectIndex,
   feed,
   hot,
+  pairs,
+  pairedIds,
   selectedId,
   onSelect,
 }: {
@@ -65,6 +84,8 @@ export function MapCanvas({
   projectIndex: Map<string, Project>;
   feed: SourceEvent[];
   hot: Set<string>;
+  pairs: Pair[];
+  pairedIds: Set<string>;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }) {
@@ -73,8 +94,8 @@ export function MapCanvas({
   const frameRef = useRef<number>(0);
   const arcsRef = useRef<LiveArc[]>([]);
   const arcSeen = useRef<Set<string>>(new Set());
-  const stateRef = useRef({ projects, projectIndex, feed, hot, selectedId });
-  stateRef.current = { projects, projectIndex, feed, hot, selectedId };
+  const stateRef = useRef({ projects, projectIndex, feed, hot, pairs, pairedIds, selectedId });
+  stateRef.current = { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -86,23 +107,33 @@ export function MapCanvas({
       pitch: 0,
       bearing: 0,
       attributionControl: { compact: true },
-      maxPitch: 60,
+      maxPitch: 62,
     });
-    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [], effects: [LIGHTING] });
     map.addControl(overlay as unknown as IControl);
     mapRef.current = map;
 
     map.on("load", () => {
-      // ——— texture: tuned inks ———
+      // ——— world re-ink: slate-blue ground, darker water, white hairline streets ———
       try {
         for (const layer of map.getStyle().layers ?? []) {
-          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#0a0e13");
-          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#060a10");
-          if (layer.type === "fill" && /land/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#10161e");
+          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#141d29");
+          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#101a26");
+          else if (layer.type === "fill" && /land|park|green|residential/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#1d2937");
+          if (layer.type === "line") {
+            const road = /road|street|highway|motorway|trunk|primary|secondary|tertiary|minor|path|rail|transit/i.test(layer.id);
+            const boundary = /admin|boundary|border/i.test(layer.id);
+            if (road) {
+              const majorRoad = /motorway|trunk|highway|primary/i.test(layer.id);
+              map.setPaintProperty(layer.id, "line-color", majorRoad ? "rgba(226,234,246,0.34)" : "rgba(226,234,246,0.15)");
+            } else if (boundary) {
+              map.setPaintProperty(layer.id, "line-color", "rgba(226,234,246,0.12)");
+            }
+          }
         }
-      } catch { /* basemap ids shift between versions; tint is best-effort */ }
+      } catch { /* basemap ids shift between versions; re-ink is best-effort */ }
 
-      // ——— texture: hillshade from open terrarium DEM (no key) ———
+      // ——— terrain relief, tuned to slate ———
       map.addSource("dem", {
         type: "raster-dem",
         tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
@@ -116,37 +147,57 @@ export function MapCanvas({
         type: "hillshade",
         source: "dem",
         paint: {
-          "hillshade-exaggeration": 0.8,
-          "hillshade-shadow-color": "#04070b",
-          "hillshade-highlight-color": "#2a3646",
-          "hillshade-accent-color": "#141c26",
+          "hillshade-exaggeration": 0.75,
+          "hillshade-shadow-color": "#0a121c",
+          "hillshade-highlight-color": "#33455c",
+          "hillshade-accent-color": "#1c2836",
         },
       });
 
-      // ——— texture: county hairlines ———
+      // ——— county hairlines ———
       map.addSource("counties", { type: "geojson", data: "/tx-counties.json" });
       map.addLayer({
         id: "county-lines",
         type: "line",
         source: "counties",
         paint: {
-          "line-color": "rgba(214,196,161,0.10)",
+          "line-color": "rgba(226,234,246,0.09)",
           "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 8, 0.9],
         },
       });
 
-      // ——— intro flight ———
+      // ——— the la-phase-5 moment: peach building mass appears on deep fly-in ———
+      try {
+        map.addLayer({
+          id: "buildings-3d",
+          type: "fill-extrusion",
+          source: "carto",
+          "source-layer": "building",
+          minzoom: 11.5,
+          paint: {
+            "fill-extrusion-color": "#f2c49b",
+            "fill-extrusion-height": ["coalesce", ["get", "render_height"], 13],
+            "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+            "fill-extrusion-opacity": 0.92,
+          },
+        });
+      } catch (e) { console.warn("building extrusion layer unavailable", e); }
+
       map.flyTo({ ...HOME, duration: 3200, essential: true });
     });
 
     const render = (now: number) => {
-      const { projects, projectIndex, feed, hot, selectedId } = stateRef.current;
+      const { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId } = stateRef.current;
       const placed = projects.filter((p) => p.lat != null && p.lon != null);
       const t = (now % 2200) / 2200;
-      const scored = placed.map((p) => ({ p, h: heatScore(p) }));
-      const topHot = [...scored].sort((a, b) => b.h - a.h).slice(0, 5).map((d, i) => ({ ...d, rank: i }));
+      const scored = placed.map((p) => ({ p, h: heatScore(p, { paired: pairedIds.has(p.id) }) }));
+      const dcs = scored.filter(({ p }) => p.project_type !== "gas_to_power");
+      const gas = scored.filter(({ p }) => p.project_type === "gas_to_power");
+      const topHot = [...dcs].sort((a, b) => b.h - a.h).slice(0, 5).map((d, i) => ({ ...d, rank: i }));
+      const tethers = pairs
+        .map((pr) => ({ pr, dc: projectIndex.get(pr.dcId), g: projectIndex.get(pr.gasId) }))
+        .filter((x) => x.dc?.lon != null && x.g?.lon != null);
 
-      // arc lifecycle: fresh attributed events spawn an arc, arcs die after ARC_TTL
       for (const e of feed.slice(0, 20)) {
         if (arcSeen.current.has(e.id) || !e.project_id) continue;
         const project = projectIndex.get(e.project_id);
@@ -156,14 +207,39 @@ export function MapCanvas({
         arcsRef.current.push({ id: e.id, event: e, project, bornAt: now });
       }
       arcsRef.current = arcsRef.current.filter((a) => now - a.bornAt < ARC_TTL);
-      const arcs = arcsRef.current;
+
+      const columnShared = {
+        pickable: true,
+        extruded: true,
+        material: MATERIAL,
+        getElevation: ({ p }: { p: Project }) => 2500 + Math.sqrt(p.capacity_mw ?? 6) * 3400,
+        getFillColor: ({ p, h }: { p: Project; h: number }) => {
+          const c = heatColor(h);
+          const alpha = p.id === selectedId ? 255 : hot.has(p.id) ? 245 : 215;
+          return [c[0], c[1], c[2], alpha] as [number, number, number, number];
+        },
+        onClick: (info: { object?: { p: Project } }) => onSelect(info.object ? info.object.p.id : null),
+        updateTriggers: { getFillColor: [selectedId, hot] },
+        transitions: { getElevation: { duration: 900, easing: (x: number) => 1 - (1 - x) ** 3 } },
+      } as const;
 
       overlay.setProps({
         layers: [
+          // pairing tethers — the behind-the-meter story drawn as low power lines
+          new ArcLayer({
+            id: "tethers",
+            data: tethers,
+            getSourcePosition: (d) => [d.g!.lon!, d.g!.lat!],
+            getTargetPosition: (d) => [d.dc!.lon!, d.dc!.lat!],
+            getSourceColor: [255, 161, 99, 210],
+            getTargetColor: [242, 196, 155, 235],
+            getWidth: 2,
+            getHeight: 0.9,
+          }),
           // filing arcs — a document flying from its agency to the site
           new ArcLayer<LiveArc>({
             id: "arcs",
-            data: arcs,
+            data: arcsRef.current,
             getSourcePosition: (a) => arcOrigin(a.event, a.project),
             getTargetPosition: (a) => [a.project.lon!, a.project.lat!],
             getSourceColor: (a) => [255, 216, 168, Math.round(Math.max(0, 200 * (1 - (now - a.bornAt) / ARC_TTL)))] as never,
@@ -179,34 +255,18 @@ export function MapCanvas({
             data: scored.filter(({ p }) => hot.has(p.id)),
             getPosition: ({ p }) => [p.lon!, p.lat!],
             getRadius: () => 5000 + t * 30000,
-            getLineColor: ({ p, h }) => [...heatColor(h), Math.round(210 * (1 - t))] as never,
+            getLineColor: ({ h }) => [...heatColor(h), Math.round(210 * (1 - t))] as never,
             stroked: true,
             filled: false,
             lineWidthMinPixels: 1.5,
             radiusUnits: "meters",
             updateTriggers: { getRadius: t, getLineColor: t },
           }),
-          // MW as matter — extruded columns, heat-colored
-          new ColumnLayer({
-            id: "columns",
-            data: scored,
-            pickable: true,
-            diskResolution: 12,
-            radius: 5200,
-            extruded: true,
-            getPosition: ({ p }) => [p.lon!, p.lat!],
-            getElevation: ({ p }) => 2500 + Math.sqrt(p.capacity_mw ?? 6) * 3400,
-            getFillColor: ({ p, h }) => {
-              const c = heatColor(h);
-              const boost = p.id === selectedId ? 255 : hot.has(p.id) ? 245 : 205;
-              return [c[0], c[1], c[2], boost] as never;
-            },
-            getLineColor: [10, 14, 19, 255],
-            onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
-            updateTriggers: { getFillColor: [selectedId, hot] },
-            transitions: { getElevation: { duration: 900, easing: (x: number) => 1 - (1 - x) ** 3 } },
-          }),
-          // ground dot anchors the column and survives flat pitch
+          // data centers — lit cylinders
+          new ColumnLayer({ id: "dc-columns", data: dcs, diskResolution: 20, radius: 5200, ...columnShared }),
+          // gas plants — 4-sided obelisks, rotated: a different silhouette for a different asset
+          new ColumnLayer({ id: "gas-columns", data: gas, diskResolution: 4, angle: 45, radius: 4300, ...columnShared }),
+          // ground anchors (readability at flat angles + generous click target)
           new ScatterplotLayer({
             id: "anchors",
             data: scored,
@@ -215,29 +275,43 @@ export function MapCanvas({
             getRadius: ({ p }) => 1800 + Math.sqrt(p.capacity_mw ?? 6) * 900,
             radiusMinPixels: 2.5,
             radiusMaxPixels: 14,
-            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : 190] as never,
-            getLineColor: ({ p }) => (p.id === selectedId ? [255, 250, 240, 255] : [8, 11, 15, 220]) as never,
+            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : 170] as never,
+            getLineColor: ({ p }) => (p.id === selectedId ? [255, 250, 240, 255] : [12, 17, 24, 220]) as never,
             getLineWidth: ({ p }) => (p.id === selectedId ? 2.2 : 1),
             lineWidthUnits: "pixels",
             stroked: true,
             onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
             updateTriggers: { getFillColor: [selectedId], getLineColor: selectedId, getLineWidth: selectedId },
           }),
-          // typographic map: cities as editorial objects
+          // regions — quiet spaced caps, the cartographic undertone
+          new TextLayer({
+            id: "region-labels",
+            data: REGIONS,
+            getPosition: (r) => r.pos,
+            getText: (r) => spaced(r.name),
+            getSize: (r) => r.size,
+            getColor: [196, 208, 226, 78],
+            fontFamily: '"Fraunces", Georgia, "Times New Roman", serif',
+            fontWeight: 400,
+            outlineWidth: 2,
+            outlineColor: [10, 15, 22, 200],
+            fontSettings: { sdf: true },
+          }),
+          // cities — editorial serif objects
           new TextLayer({
             id: "city-labels",
             data: CITIES,
             getPosition: (c) => c.pos,
             getText: (c) => c.name.toUpperCase(),
             getSize: (c) => (c.major ? 15 : 11.5),
-            getColor: (c) => (c.major ? [216, 205, 189, 165] : [173, 166, 155, 110]),
+            getColor: (c) => (c.major ? [226, 220, 208, 175] : [186, 182, 172, 115]),
             fontFamily: '"Fraunces", Georgia, "Times New Roman", serif',
             fontWeight: 500,
             getTextAnchor: "start",
             getAlignmentBaseline: "center",
             getPixelOffset: [10, 0],
             outlineWidth: 3,
-            outlineColor: [7, 10, 14, 235],
+            outlineColor: [10, 15, 22, 235],
             fontSettings: { sdf: true },
           }),
           // hottest projects earn their names on the map
@@ -255,7 +329,7 @@ export function MapCanvas({
             // stagger labels so clustered metros (DFW) don't pile up
             getPixelOffset: (d: { rank: number }) => [10 + (d.rank % 2) * 6, -12 - d.rank * 13],
             outlineWidth: 4,
-            outlineColor: [7, 10, 14, 245],
+            outlineColor: [10, 15, 22, 245],
             fontSettings: { sdf: true },
           }),
         ],
@@ -272,15 +346,23 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // cinematic fly-to on selection
+  // deep cinematic fly-in on selection — street level, buildings rise
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selectedId) return;
     const p = projects.find((x) => x.id === selectedId);
     if (p?.lat != null && p?.lon != null) {
-      map.flyTo({ center: [p.lon + 0.45, p.lat - 0.08], zoom: 8.0, pitch: 52, bearing: -18, speed: 0.85, curve: 1.5, essential: true });
-    } else return;
-    return () => {};
+      map.flyTo({
+        center: [p.lon, p.lat],
+        zoom: 12.6,
+        pitch: 56,
+        bearing: -22,
+        speed: 0.8,
+        curve: 1.55,
+        padding: { left: 500, top: 0, right: 0, bottom: 0 },
+        essential: true,
+      });
+    }
   }, [selectedId, projects]);
 
   // release camera back to the state view when dossier closes
@@ -288,7 +370,7 @@ export function MapCanvas({
   useEffect(() => {
     if (selectedId) { hadSelection.current = true; return; }
     if (hadSelection.current && mapRef.current) {
-      mapRef.current.flyTo({ ...HOME, duration: 2200, essential: true });
+      mapRef.current.flyTo({ ...HOME, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 2400, essential: true });
     }
   }, [selectedId]);
 
@@ -300,7 +382,7 @@ export function MapCanvas({
       {/* texture: grain + vignette above tiles, below UI */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(120% 95% at 46% 42%, transparent 52%, rgba(3,5,8,0.62) 100%)",
+        background: "radial-gradient(120% 95% at 46% 42%, transparent 52%, rgba(8,12,18,0.6) 100%)",
       }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.05, mixBlendMode: "overlay",

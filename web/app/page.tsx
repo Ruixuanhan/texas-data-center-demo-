@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { useLiveData } from "@/lib/useLiveData";
 import { FeedRail } from "@/components/FeedRail";
-import { heatHex, heatScore } from "@/lib/heat";
+import { computePairs, heatHex, heatScore } from "@/lib/heat";
 import { STAGE_LABELS, STAGE_LADDER } from "@/lib/types";
 
 const MapCanvas = dynamic(() => import("@/components/MapCanvas").then((m) => m.MapCanvas), { ssr: false });
@@ -29,14 +29,25 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const list = useMemo(() => [...projects.values()], [projects]);
-  const totalMw = useMemo(() => Math.round(list.reduce((s, p) => s + (p.capacity_mw ?? 0), 0)), [list]);
-  const earlyCount = useMemo(() => list.filter((p) => STAGE_LADDER.slice(0, 4).includes(p.current_stage)).length, [list]);
+  const dcList = useMemo(() => list.filter((p) => p.project_type !== "gas_to_power"), [list]);
+  const totalMw = useMemo(() => Math.round(dcList.reduce((s, p) => s + (p.capacity_mw ?? 0), 0)), [dcList]);
+  const earlyCount = useMemo(() => dcList.filter((p) => STAGE_LADDER.slice(0, 4).includes(p.current_stage)).length, [dcList]);
+  const { pairs, pairedIds } = useMemo(() => computePairs(list), [list]);
   const topOps = useMemo(
-    () => list.filter((p) => p.current_stage !== "canceled").map((p) => ({ p, h: heatScore(p) })).sort((a, b) => b.h - a.h).slice(0, 5),
+    // The lens ranks DATA CENTERS — the load is the opportunity; gas is its pairing attribute.
+    () => dcList.filter((p) => p.current_stage !== "canceled").map((p) => ({ p, h: heatScore(p, { paired: pairedIds.has(p.id) }) })).sort((a, b) => b.h - a.h).slice(0, 5),
     // heat decays with time; feed changes are the natural recompute pulse
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [list, feed.length],
+    [dcList, feed.length, pairedIds],
   );
+  const selectedPair = useMemo(() => {
+    if (!selectedId) return null;
+    const pr = pairs.find((x) => x.dcId === selectedId || x.gasId === selectedId);
+    if (!pr) return null;
+    const otherId = pr.dcId === selectedId ? pr.gasId : pr.dcId;
+    const other = projects.get(otherId);
+    return other ? { other, km: pr.km } : null;
+  }, [selectedId, pairs, projects]);
 
   return (
     <main className="flex flex-col" style={{ height: "100vh" }}>
@@ -49,8 +60,9 @@ export default function Home() {
         </h1>
         <div className="flex items-end gap-12">
           <Kpi label="Projects tracked" value={list.length} />
-          <Kpi label="Pipeline" value={totalMw.toLocaleString()} unit="MW" />
+          <Kpi label="DC load pipeline" value={totalMw.toLocaleString()} unit="MW" />
           <Kpi label="Pre-FEED window" value={earlyCount} hot />
+          <Kpi label="BTM pairings" value={pairs.length} />
           <Kpi label="Signals today" value={signalsToday} />
         </div>
         <span className="mono ml-auto flex items-center gap-2 pb-1 text-[10px] uppercase tracking-[0.25em] text-[var(--text-dim)]">
@@ -66,9 +78,18 @@ export default function Home() {
             projectIndex={projects}
             feed={feed}
             hot={hot}
+            pairs={pairs}
+            pairedIds={pairedIds}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
+
+          {/* asset legend — the two silhouettes + the pairing tether */}
+          <div className="mono pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-5 text-[9px] uppercase tracking-[0.22em] text-[var(--text-faint)]">
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" /> data center</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--signal-notable)]" /> gas-to-power</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--signal-notable)] to-[var(--accent)]" /> btm pairing</span>
+          </div>
 
           {/* Top opportunities — the investor lens, pinned to the theater */}
           {!selectedId && (
@@ -109,7 +130,13 @@ export default function Home() {
           )}
 
           {selectedId && (
-            <Dossier projectId={selectedId} project={projects.get(selectedId) ?? null} onClose={() => setSelectedId(null)} />
+            <Dossier
+              projectId={selectedId}
+              project={projects.get(selectedId) ?? null}
+              paired={selectedPair}
+              onSelectProject={setSelectedId}
+              onClose={() => setSelectedId(null)}
+            />
           )}
 
           {latestStageChange && (

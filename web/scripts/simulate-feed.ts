@@ -162,6 +162,55 @@ async function live() {
   tick();
 }
 
+// ——— Gas-to-power plants adjacent to early-stage DCs: the behind-the-meter pairing story ———
+async function addGas() {
+  const { data: dcs, error } = await db.from("projects")
+    .select("id,slug,name,county,city,lat,lon,capacity_mw,current_stage")
+    .eq("project_type", "data_center")
+    .in("current_stage", ["concept", "fel1", "fel2", "feed", "ia"]);
+  if (error) throw error;
+  const anchors = (dcs ?? []).filter((p) => p.lat && p.lon).slice(0, 8);
+  const plants = anchors.map((dc, i) => {
+    const ang = Math.random() * Math.PI * 2, dist = between(0.035, 0.11); // ~4–12 km
+    const stage = rand<Stage>(["fel1", "fel2", "feed", "construction"]);
+    return {
+      slug: `${dc.slug}-gas-${i}`,
+      name: `${dc.county ?? "Lone Star"} Energy Center ${i + 1}`,
+      developer: rand(["Lonestar Generation LLC", "Brazos Peaker Partners", "GulfBridge Power", "Caprock Energy Devco"]),
+      county: dc.county, city: dc.city,
+      lat: dc.lat! + Math.sin(ang) * dist, lon: dc.lon! + Math.cos(ang) * dist,
+      capacity_mw: Math.round(between(90, 400)),
+      project_type: "gas_to_power",
+      current_stage: stage,
+      stage_confidence: +between(0.5, 0.85).toFixed(2),
+      headline: "Behind-the-meter gas generation sited against adjacent data-center load",
+      first_seen: daysAgo(between(20, 120)), last_activity: daysAgo(between(0, 6)),
+    };
+  });
+  // two standalone West Texas plants so the pattern isn't universal
+  plants.push({
+    slug: "permian-switch-gas-1", name: "Permian Switch Energy Center",
+    developer: "Caprock Energy Devco", county: "Midland", city: "Midland",
+    lat: 32.09, lon: -102.2, capacity_mw: 320, project_type: "gas_to_power",
+    current_stage: "fel2", stage_confidence: 0.61,
+    headline: "Gas peaker at Permian gateway — load counterparty undisclosed",
+    first_seen: daysAgo(90), last_activity: daysAgo(2),
+  } as never);
+  const { data: up, error: e2 } = await db.from("projects").upsert(plants, { onConflict: "slug" }).select("id,slug,name,county,capacity_mw");
+  if (e2) throw e2;
+  const events = (up ?? []).flatMap((p) => [
+    { project_id: p.id, source: "rrc", event_type: "filing", severity: "notable", title: `RRC: gas nomination + pipeline interconnect filed — ${p.name}`, url: "https://example.com/filing", occurred_at: daysAgo(between(2, 30)), ingested_at: daysAgo(between(0, 2)) },
+    { project_id: p.id, source: "tceq", event_type: "permit", severity: "notable", title: `TCEQ air permit ${140000 + Math.floor(Math.random() * 9999)} — ${Math.round(p.capacity_mw ?? 200)} MW simple-cycle, ${p.county} Co`, url: "https://example.com/filing", occurred_at: daysAgo(between(2, 30)), ingested_at: daysAgo(between(0, 2)) },
+  ]);
+  await db.from("source_events").insert(events).then(({ error: e }) => { if (e) throw e; });
+  await db.from("stage_history").insert((up ?? []).map((p) => ({
+    project_id: p.id, stage: "fel2", confidence: 0.65,
+    rationale: "Air permit + gas nomination pattern adjacent to DC load", inferred_by: "rules",
+  }))).then(({ error: e }) => { if (e) throw e; });
+  console.log(`Gas plants upserted: ${up?.length} (+${events.length} events)`);
+}
+
 if (process.argv.includes("--seed")) await seed();
 else if (process.argv.includes("--live")) await live();
-else console.log("Usage: bun scripts/simulate-feed.ts --seed | --live");
+else if (process.argv.includes("--gas")) await addGas();
+else console.log("Usage: bun scripts/simulate-feed.ts --seed | --live | --gas");

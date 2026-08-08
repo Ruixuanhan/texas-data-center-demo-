@@ -2,18 +2,19 @@
 
 /* ——— Token layer (placeholder neutral-dark; overwritten by winning direction) ——— */
 :root {
-  /* Committed direction: textured near-black theater, warm signal accents, editorial type. */
-  --bg: #0a0e13;
-  --bg-raise: #0e131a;
-  --bg-panel: #131a23;
-  --line: rgba(224, 210, 187, 0.09);
-  --line-strong: rgba(224, 210, 187, 0.18);
-  --text: #e9e4da;
-  --text-dim: #9a958a;
-  --text-faint: #5f5c54;
-  --accent: #ffb454;
-  --signal-low: #8b8478;
-  --signal-notable: #ffb454;
+  /* Committed direction v2 (la-phase-5 baseline): deep slate-blue world, peach data as
+     lit matter, warm paper text, editorial type. */
+  --bg: #131c28;
+  --bg-raise: #16202d;
+  --bg-panel: #1a2534;
+  --line: rgba(226, 232, 244, 0.1);
+  --line-strong: rgba(226, 232, 244, 0.2);
+  --text: #ece7dd;
+  --text-dim: #a3a49f;
+  --text-faint: #67707c;
+  --accent: #f2c49b;
+  --signal-low: #8b93a0;
+  --signal-notable: #ffa163;
   --signal-major: #ff5d49;
   --live: #ffd8a8;
   --font-ui: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;

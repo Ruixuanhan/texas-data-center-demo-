@@ -13,10 +13,14 @@ import { ConfidenceMeter, RelativeTime, SeverityTag, StageBadge } from "@/compon
 export function ProjectDossier({
   projectId,
   project,
+  paired,
+  onSelectProject,
   onClose,
 }: {
   projectId: string;
   project: Project | null;
+  paired?: { other: Project; km: number } | null;
+  onSelectProject?: (id: string) => void;
   onClose: () => void;
 }) {
   const [aliases, setAliases] = useState<ProjectAlias[]>([]);
@@ -74,6 +78,20 @@ export function ProjectDossier({
         <p className="mt-2.5 border-l-2 pl-2.5 text-[12.5px] italic leading-snug text-[var(--text-dim)]" style={{ borderColor: heatHex(heatScore(project)) }}>
           {whyItMatters(project, heatScore(project))}
         </p>
+        {paired && (
+          <button
+            onClick={() => onSelectProject?.(paired.other.id)}
+            className="mt-2.5 flex w-full items-center gap-2.5 border border-[var(--line-strong)] bg-[rgba(255,161,99,0.06)] px-2.5 py-2 text-left transition-colors hover:bg-[rgba(255,161,99,0.12)]"
+          >
+            <span className="mono text-[8.5px] uppercase tracking-[0.22em] text-[var(--signal-notable)]">
+              {project.project_type === "gas_to_power" ? "Serves load" : "Power pairing"}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text)]">{paired.other.name}</span>
+            <span className="mono shrink-0 text-[10px] text-[var(--text-dim)]">
+              {paired.km} km · behind-the-meter {paired.other.capacity_mw ? `· ${Math.round(paired.other.capacity_mw)} MW` : ""}
+            </span>
+          </button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
