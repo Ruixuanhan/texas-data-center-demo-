@@ -12,3 +12,11 @@ The interface also demonstrated the intended safety behavior: candidate records 
 After deleting the local SQLite database and restarting the application, the dashboard initialized successfully from both committed source fixtures. The interface exposed `Cleanview` and `ERCOT GIS` in the evidence-source filter and reported 1,852 visible project records totaling 441,011 MW at the default time setting.
 
 A selected ERCOT GIS record, **18-ALPHA BESS**, displayed INR `28INR0328`, a July 31, 2026 source date, the source study phase `SS Completed, FIS Started, No IA`, and an evidence-bounded `FEL-2 / Pre-FEED` assessment at 72% confidence. The project story linked back to the official ERCOT product page and exposed the retained raw source row. ERCOT records without published project coordinates remained available to search and inspect but were not represented as map markers.
+
+## FastAPI + Next.js migration check — 2026-08-08
+
+The adopted Next.js map-theater frontend successfully rendered its visual shell through the same-origin proxy, but the first browser check remained at `Projects tracked 0` and `connecting`. The Python API process was running; further proxy/API response diagnostics are required before the migrated frontend can be accepted.
+
+## FastAPI + Next.js multi-source migration — 2026-08-08
+
+The migrated Next.js map theater successfully hydrated through the same-origin FastAPI bridge. It displayed 1,895 tracked records, 364,230 MW of data-center pipeline, 80 evidence events, and a live API status. The visible source ticker included the Cleanview gas event `Baseline gas-capacity signal: Hale Thermal is Concept`, with its 0.60 deterministic confidence. The external browser session became unavailable before a dossier click could be completed; API and automated contract tests remain the validation fallback.

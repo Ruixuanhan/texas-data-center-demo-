@@ -1,4 +1,4 @@
-"""Read-side services for the Project Radar Streamlit dashboard."""
+"""Read-side services for the Project Radar FastAPI evidence read model."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from radar.data.database import initialize_database, session_scope
 from radar.data.models import IngestionRun, MatchCandidate, Project, ProjectEvent, Signal, SourceDocument
+from radar.services.cleanview_gas_service import DEFAULT_GAS_SOURCE_CSV, SOURCE_NAME as CLEANVIEW_GAS_SOURCE, ingest_cleanview_gas_plants
 from radar.services.ercot_gis_service import DEFAULT_ERCOT_WORKBOOK, ingest_ercot_gis
 from radar.services.ingestion_service import DEFAULT_SOURCE_CSV, ingest_cleanview_snapshot, refresh_match_candidates
 
@@ -21,6 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 def ensure_bootstrapped(
     csv_path: Path = DEFAULT_SOURCE_CSV,
     ercot_workbook_path: Path = DEFAULT_ERCOT_WORKBOOK,
+    gas_csv_path: Path = DEFAULT_GAS_SOURCE_CSV,
 ) -> None:
     """Initialize the local database and load each committed source snapshot once."""
     initialize_database()
@@ -30,30 +32,42 @@ def ensure_bootstrapped(
                 select(IngestionRun.source).where(IngestionRun.status == "success")
             ).all()
         )
+        ingested_new_source = False
         if "Cleanview" not in completed_sources:
             ingest_cleanview_snapshot(session, csv_path)
+            ingested_new_source = True
         if "ERCOT GIS" not in completed_sources:
             ingest_ercot_gis(session, ercot_workbook_path)
-        refresh_match_candidates(session)
+            ingested_new_source = True
+        if CLEANVIEW_GAS_SOURCE not in completed_sources:
+            ingest_cleanview_gas_plants(session, gas_csv_path)
+            ingested_new_source = True
+        # Candidate rebuild is quadratic across project rows, so perform it only
+        # after source bootstrap; explicit refreshes still rebuild it below.
+        if ingested_new_source:
+            refresh_match_candidates(session)
 
 
 def refresh_snapshot(
     csv_path: Path = DEFAULT_SOURCE_CSV,
     ercot_workbook_path: Path = DEFAULT_ERCOT_WORKBOOK,
+    gas_csv_path: Path = DEFAULT_GAS_SOURCE_CSV,
 ) -> dict[str, object]:
     """Run each committed source adapter and return combined user-facing health metadata."""
     initialize_database()
     with session_scope() as session:
         cleanview_run = ingest_cleanview_snapshot(session, csv_path)
         ercot_run = ingest_ercot_gis(session, ercot_workbook_path)
+        gas_run = ingest_cleanview_gas_plants(session, gas_csv_path)
         refresh_match_candidates(session)
+        runs = [cleanview_run, ercot_run, gas_run]
         return {
-            "source": "Cleanview + ERCOT GIS",
-            "status": "success" if cleanview_run.status == ercot_run.status == "success" else "partial_failure",
-            "records_seen": cleanview_run.records_seen + ercot_run.records_seen,
-            "records_changed": cleanview_run.records_changed + ercot_run.records_changed,
-            "completed_at": max(cleanview_run.completed_at, ercot_run.completed_at),
-            "message": f"{cleanview_run.message} {ercot_run.message}",
+            "source": "Cleanview + ERCOT GIS + Cleanview Gas Plants",
+            "status": "success" if all(run.status == "success" for run in runs) else "partial_failure",
+            "records_seen": sum(run.records_seen for run in runs),
+            "records_changed": sum(run.records_changed for run in runs),
+            "completed_at": max(run.completed_at for run in runs if run.completed_at is not None),
+            "message": " ".join(run.message or "" for run in runs),
         }
 
 

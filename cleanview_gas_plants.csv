@@ -1,0 +1,19 @@
+plant_name,owner_developer,city,county,capacity_MW,status,technology_fuel,expected_online,latitude,longitude,source_url
+BasRanch (TEF - Due Diligence),,,Ward,1350.0,Planned,Natural Gas,December 2028,31.5007583,-103.0781186,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/25INR0008/basranch-tef---due-diligence
+Coyanosa Gas,,,Winkler,10.0,Planned,Natural Gas,December 2026,31.8005913,-103.0762299,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/25INR0711/coyanosa-gas
+Coleto Creek - Fuel Change Only,,,Goliad,655.0,Planned,Natural Gas,December 2026,28.6467776,-97.4379552,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/26INR0664/coleto-creek---fuel-change-only
+Aegle Power,,,Cameron,1536.0,Planned,Natural Gas,July 2027,26.1291189,-97.4134281,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/27INR0084/aegle-power
+Willow Oak Gas,,,Jefferson,1350.0,Planned,Natural Gas,January 2030,29.834772,-94.1704496,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/30INR0020/willow-oak-gas-
+Caldwell County Energy Center,,,Caldwell,1500.0,Planned,Natural Gas,April 2030,29.8298971,-97.5959641,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/30INR0031/caldwell-county-energy-center
+Prairie Ridge (Gas - CC),,,Franklin,1660.0,Planned,Natural Gas,June 2032,33.2002659,-95.2231752,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/30INR0071/prairie-ridge-gas---cc
+BM Great Rock Energy Center,,,Leon,1981.0,Planned,Natural Gas,May 2029,31.2715127,-95.9953382,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/30INR0091/bm-great-rock-energy-center
+Mule Deer Run Gas III,,,Anderson,1380.0,Planned,Natural Gas,July 2031,31.7819242,-95.6258199,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/31INR0022/mule-deer-run-gas-iii
+Bullock Gas,,,Hill,1400.0,Planned,Natural Gas,July 2033,31.9595085,-97.0881654,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/33INR0005/bullock-gas
+Liberty Thermal Energy Center,,,Hill,1400.0,Planned,Natural Gas,July 2033,31.9595085,-97.0881654,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/33INR0006/liberty-thermal-energy-center
+Coyanosa Gas,,,Pecos,3.0,Planned,Natural Gas,December 2026,30.7857437,-102.8065415,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69268_COYA1/coyanosa-gas
+Coyanosa Gas,,,Pecos,3.0,Planned,Natural Gas,December 2026,30.7857437,-102.8065415,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69268_COYA2/coyanosa-gas
+Coyanosa Gas,,,Pecos,3.0,Planned,Natural Gas,December 2026,30.7857437,-102.8065415,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69268_COYA3/coyanosa-gas
+Staghorn Gas,,,Ward,3.0,Planned,Natural Gas,October 2026,31.5007583,-103.0781186,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69271_STAG1/staghorn-gas
+Staghorn Gas,,,Ward,3.0,Planned,Natural Gas,October 2026,31.5007583,-103.0781186,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69271_STAG2/staghorn-gas
+Staghorn Gas,,,Ward,3.0,Planned,Natural Gas,October 2026,31.5007583,-103.0781186,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/69271_STAG3/staghorn-gas
+Hale Thermal,,,Hale,203.0,Planned,Natural Gas,December 2026,34.0321298,-101.8088827,https://cleanview.co/power-projects/planned/natural-gas-power-plants/texas/GEN-2022-147/hale-thermal
