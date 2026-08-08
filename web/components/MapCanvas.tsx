@@ -138,7 +138,7 @@ export function MapCanvas({
   const arcsRef = useRef<LiveArc[]>([]);
   const arcSeen = useRef<Set<string>>(new Set());
   const countyWashRef = useRef<(() => void) | null>(null);
-  const crowdRef = useRef<Map<string, number>>(new Map());
+  const crowdRef = useRef<Map<string, { lon: number; lat: number; crowd: number; towerAngle: number }>>(new Map());
   const [modelsReady, setModelsReady] = useState(false);
   const stateRef = useRef({ projects, projectIndex, feed, hot, pairs, pairedIds, selectedId, modelsReady });
   stateRef.current = { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId, modelsReady };
@@ -154,18 +154,30 @@ export function MapCanvas({
     return () => { live = false; };
   }, []);
 
-  // crowding factor: clustered metros shrink their landmarks so they don't melt together
+  // declutter pass (one O(n²) sweep): clustered assets shrink harder, overlapping
+  // neighbors get a small display-only displacement apart (classic cartographic
+  // displacement — positions stay honest within ~4 km at a 700 km canvas), and each
+  // stage tower escapes AWAY from its nearest neighbor instead of into it.
   useEffect(() => {
     const placed = projects.filter((p) => p.lat != null && p.lon != null);
-    const m = new Map<string, number>();
+    const m = new Map<string, { lon: number; lat: number; crowd: number; towerAngle: number }>();
     for (const a of placed) {
-      let nearest = Infinity;
+      let nearest = Infinity, nx = 1, ny = 0;
       for (const b of placed) {
         if (a.id === b.id) continue;
         const dx = (a.lon! - b.lon!) * 91, dy = (a.lat! - b.lat!) * 110.6;
-        nearest = Math.min(nearest, Math.hypot(dx, dy));
+        const d = Math.hypot(dx, dy);
+        if (d < nearest) { nearest = d; nx = dx / (d || 1); ny = dy / (d || 1); }
       }
-      m.set(a.id, Math.min(1, Math.max(0.45, nearest / 28)));
+      const crowd = Math.min(1, Math.max(0.32, nearest / 24));
+      const pushKm = nearest < 10 ? Math.min(4, (10 - nearest) * 0.5) : 0;
+      const lonKm = 111.32 * Math.cos((a.lat! * Math.PI) / 180);
+      m.set(a.id, {
+        lon: a.lon! + (nx * pushKm) / lonKm,
+        lat: a.lat! + (ny * pushKm) / 110.57,
+        crowd,
+        towerAngle: Math.atan2(ny, nx),
+      });
     }
     crowdRef.current = m;
   }, [projects]);
@@ -279,8 +291,12 @@ export function MapCanvas({
       }
       arcsRef.current = arcsRef.current.filter((a) => now - a.bornAt < ARC_TTL);
 
-      const crowd = crowdRef.current;
-      const sizeOf = (p: Project) => ASSET_SCALE * (crowd.get(p.id) ?? 1);
+      const geom = crowdRef.current;
+      const sizeOf = (p: Project) => ASSET_SCALE * (geom.get(p.id)?.crowd ?? 1);
+      const posOf = (p: Project): [number, number] => {
+        const g = geom.get(p.id);
+        return g ? [g.lon, g.lat] : [p.lon!, p.lat!];
+      };
 
       // asset layers: prefab GLB landmarks once loaded; procedural fallback until then
       const assetLayers = modelsReady
@@ -292,7 +308,7 @@ export function MapCanvas({
               loaders: [GLTFLoader],
               pickable: true,
               sizeScale: 1,
-              getPosition: ({ p }) => [p.lon!, p.lat!],
+              getPosition: ({ p }) => posOf(p),
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
               getScale: ({ p }) => { const s = sizeOf(p); return [s, s * 0.55, s]; },
               getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
@@ -309,7 +325,7 @@ export function MapCanvas({
               loaders: [GLTFLoader],
               pickable: true,
               sizeScale: 1,
-              getPosition: ({ p }) => [p.lon!, p.lat!],
+              getPosition: ({ p }) => posOf(p),
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
               getScale: ({ p }) => { const s = sizeOf(p); return [s, s * 0.55, s]; },
               getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
@@ -343,8 +359,8 @@ export function MapCanvas({
           new ArcLayer({
             id: "tethers",
             data: tethers,
-            getSourcePosition: (d) => [d.g!.lon!, d.g!.lat!],
-            getTargetPosition: (d) => [d.dc!.lon!, d.dc!.lat!],
+            getSourcePosition: (d) => posOf(d.g!),
+            getTargetPosition: (d) => posOf(d.dc!),
             getSourceColor: [255, 161, 99, 210],
             getTargetColor: [242, 196, 155, 235],
             getWidth: 2,
@@ -367,7 +383,7 @@ export function MapCanvas({
           new ScatterplotLayer({
             id: "pulse",
             data: scored.filter(({ p }) => hot.has(p.id)),
-            getPosition: ({ p }) => [p.lon!, p.lat!],
+            getPosition: ({ p }) => posOf(p),
             getRadius: () => 6000 + t * 34000,
             getLineColor: ({ h }) => [...heatColor(h), Math.round(210 * (1 - t))] as never,
             stroked: true,
@@ -391,11 +407,16 @@ export function MapCanvas({
                 return STAGE_LADDER.map((_, i) => ({ p, h, i, lit: idx >= 0 && i <= idx, current: i === idx }));
               }),
             mesh: CUBE,
-            getPosition: ({ p, i }) => [
-              p.lon! + SEG.eastOffsetM / (111320 * Math.cos((p.lat! * Math.PI) / 180)),
-              p.lat!,
-              SEG.base + i * (SEG.h + SEG.gap) + SEG.h / 2,
-            ],
+            getPosition: ({ p, i }) => {
+              const [lon, lat] = posOf(p);
+              const ang = geom.get(p.id)?.towerAngle ?? 0;
+              const lonM = 111320 * Math.cos((lat * Math.PI) / 180);
+              return [
+                lon + (Math.cos(ang) * SEG.eastOffsetM) / lonM,
+                lat + (Math.sin(ang) * SEG.eastOffsetM) / 110570,
+                SEG.base + i * (SEG.h + SEG.gap) + SEG.h / 2,
+              ];
+            },
             getScale: [SEG.w / 2, SEG.w / 2, SEG.h / 2],
             getColor: (d) => {
               const inFocus = !selectedId || d.p.id === selectedId || pairs.some((x) => (x.dcId === selectedId && x.gasId === d.p.id) || (x.gasId === selectedId && x.dcId === d.p.id));
@@ -413,7 +434,7 @@ export function MapCanvas({
             id: "anchors",
             data: scored,
             pickable: true,
-            getPosition: ({ p }) => [p.lon!, p.lat!],
+            getPosition: ({ p }) => posOf(p),
             getRadius: ({ p }) => 2200 + Math.sqrt(p.capacity_mw ?? 6) * 1000,
             radiusMinPixels: 3,
             radiusMaxPixels: 16,
@@ -474,7 +495,7 @@ export function MapCanvas({
                   })()
                 : []),
             ],
-            getPosition: ({ p }) => [p.lon!, p.lat!],
+            getPosition: ({ p }) => posOf(p),
             getText: ({ p }) => `${p.name.length > 26 ? p.name.slice(0, 24) + "..." : p.name}${p.capacity_mw ? `  ${Math.round(p.capacity_mw)} MW` : ""}`,
             getSize: 11.5,
             getColor: ({ h }) => [...heatColor(Math.max(h, 0.5)), 240] as never,
