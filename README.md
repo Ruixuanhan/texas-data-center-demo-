@@ -10,7 +10,7 @@ Project Radar is an **evidence-backed project-intelligence application** for Tex
 | --- | --- |
 | Evidence data platform | Python 3.12 with SQLAlchemy 2.x stores projects, source documents, signals, events, ingestion runs, and match candidates in SQLite by default. The model is portable to PostgreSQL/PostGIS. |
 | Active source adapters | Three committed source snapshots load end-to-end: Cleanview-derived data-center projects, ERCOT GIS July 2026 generation/interconnection records, and Cleanview-derived planned natural-gas plants. |
-| Environmental-source readiness | The TCEQ permit-query template and schema are versioned under `data/fixtures/tceq/`. The public query endpoint returned a server-side failure during validation, so TCEQ is transparently configured but not represented as active. |
+| Environmental-source readiness | The TCEQ permit-query template and schema are versioned under `data/fixtures/tceq/`. The public query endpoint is currently not represented as active. |
 | Stage intelligence | Deterministic Python rules map source status and ERCOT milestones to evidence-bounded Radar stages and confidence. Planned gas capacity is explicitly classified as **Concept, 0.60 confidence** until stronger independent evidence appears. |
 | Entity-resolution safety | Name, developer, county, capacity, and technology identify **review candidates**. Similarity never automatically merges Cleanview units, ERCOT records, or data-center and gas projects. |
 | Primary application | A Next.js + MapLibre + deck.gl + GSAP map theater presents source-backed assets, an investor ranking, an evidence ticker, project dossiers, source lineage, stage confidence, and a Python API liveness indicator. |
