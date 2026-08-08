@@ -18,7 +18,7 @@ import { GLTFLoader } from "@loaders.gl/gltf";
 import type { Project, SourceEvent } from "@/lib/types";
 import { STAGE_LADDER } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
-import { buildCampus, builtOpacity, campusScale, type CampusBlock } from "@/lib/campus";
+import { buildCampus, type CampusBlock } from "@/lib/campus";
 import { WORLD } from "@/lib/theme";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -30,7 +30,7 @@ const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/
 const HOME = { center: [-98.9, 31.15] as [number, number], zoom: 6.05, pitch: 42, bearing: -9 };
 
 const LIGHTING = new LightingEffect({
-  ambient: new AmbientLight({ color: [226, 232, 244], intensity: 1.15 }),
+  ambient: new AmbientLight({ color: [228, 234, 246], intensity: 1.4 }),
   key: new DirectionalLight({ color: [255, 226, 196], intensity: 1.5, direction: [-2, -3, -1.2] }),
 });
 const MATERIAL = { ambient: 0.5, diffuse: 0.75, shininess: 90, specularColor: [255, 224, 190] as [number, number, number] };
@@ -78,8 +78,19 @@ const arcOrigin = (e: SourceEvent, p: Project): [number, number] => {
 interface LiveArc { id: string; event: SourceEvent; project: Project; bornAt: number }
 const ARC_TTL = 8000;
 
-// Landmark scale: assets are diorama pieces at state view, true scale at street view.
-const assetScale = (zoom: number) => Math.min(300, Math.max(1, 2 ** ((11.8 - zoom) * 1.4)));
+// The zoom is an illusion: one fixed diorama scale everywhere — assets and beams keep
+// constant world size, legible at the wide view and simply framed larger on approach.
+const ASSET_SCALE = 95;
+const BEAM_MAX_H = 46000;   // meters at full COD progress
+const BEAM_GLOW_R = 3400;
+const BEAM_CORE_R = 1100;
+const PEACH: [number, number, number] = [242, 196, 155];
+// buildings always read as lit peach matter; heat warms them, never hides them
+const buildingTint = (h: number, selected: boolean): [number, number, number, number] => {
+  const c = heatColor(h);
+  const mix = (i: number) => Math.min(255, Math.round(c[i] * 0.5 + PEACH[i] * 0.5 + (selected ? 26 : 0)));
+  return [mix(0), mix(1), mix(2), 255];
+};
 
 // Progress → the height of the light beam rising from the asset.
 const progressFrac = (p: Project): number => {
@@ -186,6 +197,7 @@ export function MapCanvas({
       pitch: 0,
       bearing: 0,
       minZoom: 5.0,
+      maxZoom: 10.5,
       attributionControl: { compact: true },
       maxPitch: 60,
     });
@@ -264,10 +276,8 @@ export function MapCanvas({
       }
       arcsRef.current = arcsRef.current.filter((a) => now - a.bornAt < ARC_TTL);
 
-      const zoom = map.getZoom();
-      const scale = assetScale(zoom);
       const crowd = crowdRef.current;
-      const sizeOf = (p: Project) => scale * (crowd.get(p.id) ?? 1);
+      const sizeOf = (p: Project) => ASSET_SCALE * (crowd.get(p.id) ?? 1);
 
       // asset layers: prefab GLB landmarks once loaded; procedural fallback until then
       const assetLayers = modelsReady
@@ -282,12 +292,12 @@ export function MapCanvas({
               getPosition: ({ p }) => [p.lon!, p.lat!],
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
               getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
-              getColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : builtOpacity(p)] as never,
+              getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
               _lighting: "pbr",
               onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
               onHover: (info) =>
                 onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
-              updateTriggers: { getColor: [selectedId], getScale: scale },
+              updateTriggers: { getColor: [selectedId] },
             }),
             new ScenegraphLayer<{ p: Project; h: number }>({
               id: "gas-models",
@@ -299,28 +309,28 @@ export function MapCanvas({
               getPosition: ({ p }) => [p.lon!, p.lat!],
               getOrientation: ({ p }) => [0, slugYaw(p.slug), 90],
               getScale: ({ p }) => { const s = sizeOf(p); return [s, s, s]; },
-              getColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 255 : builtOpacity(p)] as never,
+              getColor: ({ p, h }) => buildingTint(h, p.id === selectedId) as never,
               _lighting: "pbr",
               onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
               onHover: (info) =>
                 onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
-              updateTriggers: { getColor: [selectedId], getScale: scale },
+              updateTriggers: { getColor: [selectedId] },
             }),
           ]
         : [
             new PolygonLayer<{ p: Project; h: number; block: CampusBlock }>({
               id: "campus-fallback",
-              data: scored.flatMap((s) => buildCampus(s.p, campusScale(zoom)).map((block) => ({ ...s, block }))),
+              data: scored.flatMap((s) => buildCampus(s.p, ASSET_SCALE).map((block) => ({ ...s, block }))),
               pickable: true,
               extruded: true,
               material: MATERIAL,
               getPolygon: (d) => d.block.polygon,
-              getElevation: (d) => d.block.height * Math.max(1, campusScale(zoom) * 0.85),
-              getFillColor: (d) => [...heatColor(d.h), d.p.id === selectedId ? 250 : builtOpacity(d.p)] as never,
+              getElevation: (d) => d.block.height * ASSET_SCALE * 0.85,
+              getFillColor: (d) => buildingTint(d.h, d.p.id === selectedId) as never,
               onClick: (info) => onSelect(info.object ? info.object.p.id : null),
               onHover: (info) =>
                 onHover?.(info.object ? { project: info.object.p, heat: info.object.h, x: info.x, y: info.y } : null),
-              updateTriggers: { getPolygon: zoom, getElevation: zoom, getFillColor: [selectedId] },
+              updateTriggers: { getFillColor: [selectedId] },
             }),
           ];
 
@@ -370,26 +380,26 @@ export function MapCanvas({
             id: "beam-glow",
             data: scored.filter(({ p }) => p.current_stage !== "canceled"),
             diskResolution: 10,
-            radius: 55 * scale,
+            radius: BEAM_GLOW_R,
             extruded: true,
             getPosition: ({ p }) => [p.lon!, p.lat!],
-            getElevation: ({ p }) => 560 * progressFrac(p) * sizeOf(p),
+            getElevation: ({ p }) => BEAM_MAX_H * progressFrac(p),
             getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 90 : 48] as never,
-            updateTriggers: { getElevation: scale, getFillColor: [selectedId], getRadius: scale },
+            updateTriggers: { getFillColor: [selectedId] },
           }),
           new ColumnLayer<{ p: Project; h: number }>({
             id: "beam-core",
             data: scored.filter(({ p }) => p.current_stage !== "canceled"),
             diskResolution: 10,
-            radius: 18 * scale,
+            radius: BEAM_CORE_R,
             extruded: true,
             getPosition: ({ p }) => [p.lon!, p.lat!],
-            getElevation: ({ p }) => 560 * progressFrac(p) * sizeOf(p),
+            getElevation: ({ p }) => BEAM_MAX_H * progressFrac(p),
             getFillColor: ({ p, h }) => {
               const c = p.id === selectedId ? [255, 250, 240] : heatColor(Math.min(1, h + 0.15));
               return [c[0], c[1], c[2], p.id === selectedId ? 235 : 165] as never;
             },
-            updateTriggers: { getElevation: scale, getFillColor: [selectedId], getRadius: scale },
+            updateTriggers: { getFillColor: [selectedId] },
           }),
           // ground anchors (small-zoom click targets)
           new ScatterplotLayer({
@@ -441,7 +451,16 @@ export function MapCanvas({
           }),
           new TextLayer({
             id: "project-labels",
-            data: topHot,
+            data: [
+              ...topHot.filter(({ p }) => p.id !== selectedId),
+              ...(selectedId
+                ? (() => {
+                    const pr = pairs.find((x) => x.dcId === selectedId || x.gasId === selectedId);
+                    const other = pr ? projectIndex.get(pr.dcId === selectedId ? pr.gasId : pr.dcId) : null;
+                    return other && other.lon != null ? [{ p: other, h: heatScore(other), rank: 0 }] : [];
+                  })()
+                : []),
+            ],
             getPosition: ({ p }) => [p.lon!, p.lat!],
             getText: ({ p }) => `${p.name.length > 26 ? p.name.slice(0, 24) + "…" : p.name}  ·  ${p.capacity_mw ? Math.round(p.capacity_mw) + " MW" : "— MW"}`,
             getSize: 11.5,
@@ -450,7 +469,7 @@ export function MapCanvas({
             fontWeight: 500,
             getTextAnchor: "start",
             getAlignmentBaseline: "bottom",
-            getPixelOffset: (d: { rank: number }) => [12 + (d.rank % 2) * 6, -14 - d.rank * 13],
+            getPixelOffset: (d: { rank: number }) => [14, -18 - d.rank * 17],
             outlineWidth: 4,
             outlineColor: [12, 18, 26, 245],
             fontSettings: { sdf: true },
@@ -470,30 +489,37 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // deep cinematic fly-in on selection
+  // SHORT flight that frames the asset AND its power pairing together
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selectedId) return;
     const p = projects.find((x) => x.id === selectedId);
-    if (p?.lat != null && p?.lon != null) {
-      map.flyTo({
-        center: [p.lon, p.lat],
-        zoom: 11.6,
-        pitch: 54,
-        bearing: -20,
-        speed: 0.8,
-        curve: 1.5,
-        padding: { left: 500, top: 0, right: 0, bottom: 0 },
-        essential: true,
-      });
-    }
-  }, [selectedId, projects]);
+    if (p?.lat == null || p?.lon == null) return;
+    const pr = pairs.find((x) => x.dcId === selectedId || x.gasId === selectedId);
+    const other = pr ? projects.find((x) => x.id === (pr.dcId === selectedId ? pr.gasId : pr.dcId)) : null;
+    const pts: [number, number][] = [[p.lon, p.lat]];
+    if (other?.lon != null && other?.lat != null) pts.push([other.lon, other.lat]);
+    const lons = pts.map((q) => q[0]), lats = pts.map((q) => q[1]);
+    const pad = 0.12;
+    const cam = map.cameraForBounds(
+      [[Math.min(...lons) - pad, Math.min(...lats) - pad], [Math.max(...lons) + pad, Math.max(...lats) + pad]],
+      { padding: { left: 540, top: 90, right: 110, bottom: 110 }, bearing: -14 },
+    );
+    map.flyTo({
+      center: cam?.center ?? [p.lon, p.lat],
+      zoom: Math.min(cam?.zoom ?? 8.6, 9.3),
+      pitch: 50,
+      bearing: -14,
+      duration: 1300,
+      essential: true,
+    });
+  }, [selectedId, projects, pairs]);
 
   const hadSelection = useRef(false);
   useEffect(() => {
     if (selectedId) { hadSelection.current = true; return; }
     if (hadSelection.current && mapRef.current) {
-      mapRef.current.flyTo({ ...HOME, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 2200, essential: true });
+      mapRef.current.flyTo({ ...HOME, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 1200, essential: true });
     }
   }, [selectedId]);
 

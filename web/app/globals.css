@@ -30,7 +30,7 @@
   --text-primary: var(--sand-12);
   --text-secondary: var(--sand-11);
   --text-dim2: oklch(0.78 0.02 90);
-  --text-faint2: oklch(0.87 0.02 88 / 0.55);
+  --text-faint2: oklch(0.87 0.02 88 / 0.78);
   --accent-solid: var(--ember-9);
   --accent-text: var(--ember-11);
 
@@ -94,3 +94,13 @@ body {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ——— accessibility (audit round) ——— */
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

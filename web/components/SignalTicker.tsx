@@ -1,9 +1,10 @@
 "use client";
-// The wire, demoted to a single breathing line — liveness stays visible without a rail.
+// The wire as a proper lower section — a fixed bar in the page layout, not a floater.
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import type { Project, SourceEvent } from "@/lib/types";
 import { SOURCE_LABELS } from "@/lib/types";
+import { RelativeTime } from "./atoms";
 
 export function SignalTicker({
   feed,
@@ -15,33 +16,36 @@ export function SignalTicker({
   onSelect: (id: string) => void;
 }) {
   const latest = feed[0];
-  const ref = useRef<HTMLButtonElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ref.current || !latest) return;
-    const tl = gsap.timeline();
-    tl.fromTo(ref.current, { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: "power3.out" })
-      .fromTo(ref.current, { backgroundColor: "rgba(255,154,94,0.38)" }, { backgroundColor: "#33495c", duration: 1.4, ease: "power2.out", clearProps: "backgroundColor" }, 0);
-    return () => { tl.kill(); };
+    if (!flashRef.current || !latest) return;
+    const tween = gsap.fromTo(flashRef.current, { opacity: 0.35 }, { opacity: 0, duration: 1.6, ease: "power2.out" });
+    return () => { tween.kill(); };
   }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!latest) return null;
-  const project = latest.project_id ? projects.get(latest.project_id) : null;
+  const project = latest?.project_id ? projects.get(latest.project_id) : null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center pb-2.5">
-      <button
-        ref={ref}
-        onClick={() => latest.project_id && onSelect(latest.project_id)}
-        className={`pointer-events-auto flex max-w-[760px] items-center gap-3 border border-[var(--paper-line)] bg-[var(--paper)] px-4 py-2 shadow-[0_10px_28px_rgba(10,15,22,0.45)] ${latest.project_id ? "cursor-pointer hover:bg-[var(--paper-raise)]" : ""}`}
-      >
-        <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ember-ink)]" />
-        <span className="mono shrink-0 text-[9px] uppercase tracking-[0.2em]" style={{ color: latest.severity === "low" ? "var(--ink-dim)" : latest.severity === "major" ? "#c02f1d" : "var(--ember-ink)" }}>
-          {SOURCE_LABELS[latest.source] ?? latest.source}
-        </span>
-        <span className="truncate text-[12px] text-[var(--ink)]">{latest.title}</span>
-        {project && <span className="mono hidden shrink-0 text-[9.5px] text-[var(--ink-faint)] sm:block">{project.county} Co</span>}
-      </button>
-    </div>
+    <footer className="relative z-20 flex h-11 shrink-0 items-center gap-4 border-t border-[var(--border-subtle)] bg-[var(--surface-chrome)] px-6">
+      <div ref={flashRef} aria-hidden className="pointer-events-none absolute inset-0 bg-[var(--signal-notable)] opacity-0" />
+      <span className="mono relative shrink-0 text-[9px] uppercase tracking-[0.3em] text-[var(--text-faint)]">The wire</span>
+      <span className="live-dot relative h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--live)]" />
+      {latest ? (
+        <button
+          onClick={() => latest.project_id && onSelect(latest.project_id)}
+          className={`relative flex min-w-0 flex-1 items-center gap-3 text-left ${latest.project_id ? "cursor-pointer" : "cursor-default"}`}
+        >
+          <span className="mono shrink-0 text-[9px] uppercase tracking-[0.2em]" style={{ color: latest.severity === "low" ? "var(--text-dim)" : latest.severity === "major" ? "var(--signal-major)" : "var(--signal-notable)" }}>
+            {SOURCE_LABELS[latest.source] ?? latest.source}
+          </span>
+          <span className="truncate text-[12.5px] text-[var(--text)]">{latest.title}</span>
+          {project && <span className="mono hidden shrink-0 text-[9.5px] text-[var(--text-faint)] md:block">{project.county} Co</span>}
+          <span className="ml-auto shrink-0"><RelativeTime iso={latest.ingested_at} /></span>
+        </button>
+      ) : (
+        <span className="text-[12px] text-[var(--text-faint)]">Waiting for first signal…</span>
+      )}
+    </footer>
   );
 }

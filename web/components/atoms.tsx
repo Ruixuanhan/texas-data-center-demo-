@@ -62,7 +62,7 @@ export function RelativeTime({ iso }: { iso: string }) {
 export function KpiStat({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-faint)]">{label}</span>
+      <span className="mono text-[9px] uppercase tracking-[0.22em] text-[var(--text-faint)]">{label}</span>
       <span className="mono text-xl leading-tight text-[var(--text)]">
         {value}
         {unit && <span className="ml-1 text-xs text-[var(--text-dim)]">{unit}</span>}

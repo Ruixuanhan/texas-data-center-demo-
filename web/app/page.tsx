@@ -23,11 +23,11 @@ function Kpi({ label, value, unit, hot }: { label: string; value: string | numbe
   }, [value, hot]);
   return (
     <div className="flex flex-col">
-      <span className="text-[9px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">{label}</span>
+      <span className="mono text-[9px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">{label}</span>
       <span
         ref={ref}
         className="inline-block origin-left text-[30px] leading-none tracking-tight"
-        style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600, color: hot ? "var(--ember-ink)" : "var(--ink)" }}
+        style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600, fontVariantNumeric: "tabular-nums", color: hot ? "var(--ember-ink)" : "var(--ink)" }}
       >
         {value}
         {unit && <span className="mono ml-1.5 text-[11px] font-normal tracking-normal text-[var(--ink-dim)]">{unit}</span>}
@@ -108,7 +108,7 @@ export default function Home() {
 
         {/* Top opportunities — the investor lens, pinned to the theater */}
         {!selectedId && (
-          <aside ref={opsRef} className="absolute bottom-14 left-6 z-10 w-[340px]" aria-label="Top opportunities">
+          <aside ref={opsRef} className="absolute bottom-6 left-6 z-10 w-[340px]" aria-label="Top opportunities">
             <h2 className="mb-2 flex items-baseline gap-2">
               <span style={{ fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic" }} className="text-[15px] text-[var(--text)]">
                 Where the money should look
@@ -127,7 +127,7 @@ export default function Home() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12.5px] text-[var(--text)]">{p.name}</span>
-                      <span className="mono block text-[9.5px] uppercase tracking-wider text-[var(--text-faint)]">
+                      <span className="mono block truncate text-[9.5px] uppercase tracking-wider text-[var(--text-faint)]">
                         {p.county} Co · {p.capacity_mw ? `${Math.round(p.capacity_mw)} MW` : "— MW"} · {STAGE_LABELS[p.current_stage]}
                         {pairedIds.has(p.id) && <span className="text-[var(--signal-notable)]"> · btm</span>}
                       </span>
@@ -156,7 +156,7 @@ export default function Home() {
         )}
 
         {latestStageChange && (
-          <div key={latestStageChange.id} className="chyron-enter pointer-events-none absolute right-6 top-4 z-10 max-w-md border-l-2 border-[var(--signal-major)] bg-[var(--surface-overlay)] px-4 py-2.5 backdrop-blur">
+          <div key={latestStageChange.id} className="chyron-enter pointer-events-none absolute right-6 top-6 z-10 max-w-md border-l-2 border-[var(--signal-major)] bg-[var(--surface-overlay)] px-4 py-2.5 backdrop-blur">
             <p className="mono text-[9px] uppercase tracking-[0.3em] text-[var(--signal-major)]">Stage call</p>
             <p className="mt-0.5 text-[13px] leading-snug text-[var(--text)]">
               {projects.get(latestStageChange.project_id)?.name ?? "Project"} advances to {STAGE_LABELS[latestStageChange.stage]} · confidence {latestStageChange.confidence.toFixed(2)}
@@ -164,16 +164,17 @@ export default function Home() {
           </div>
         )}
 
-        {/* asset legend — paper chip, never the map's color */}
-        <div className="mono pointer-events-none absolute bottom-14 right-6 z-10 flex items-center gap-5 border border-[var(--paper-line)] bg-[var(--paper)] px-3.5 py-2 text-[9px] uppercase tracking-[0.22em] text-[var(--ink-dim)] shadow-[0_10px_28px_rgba(10,15,22,0.4)]">
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[#d98a4d]" /> data center</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--ember-ink)]" /> gas-to-power</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--ember-ink)] to-[#d98a4d]" /> btm pairing</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-1 bg-[var(--ink-faint)]" style={{ boxShadow: "3px 1px 0 var(--ink-dim), 6px 2px 0 var(--ember-ink)" }} /> stage steps</span>
+        {/* asset legend — transparent, typographic */}
+        <div className="mono pointer-events-none absolute bottom-6 right-6 z-10 flex items-center gap-5 text-[9px] uppercase tracking-[0.22em] text-[var(--text-dim)] [text-shadow:0_1px_6px_rgba(8,14,20,0.9)]">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" /> data center</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--signal-notable)]" /> gas-to-power</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--signal-notable)] to-[var(--accent)]" /> btm pairing</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-[3px] rounded-full bg-[var(--live)]" /> progress beam</span>
         </div>
 
-        <SignalTicker feed={feed} projects={projects} onSelect={setSelectedId} />
       </div>
+
+      <SignalTicker feed={feed} projects={projects} onSelect={setSelectedId} />
     </main>
   );
 }
