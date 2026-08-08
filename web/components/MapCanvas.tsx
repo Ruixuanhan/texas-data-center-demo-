@@ -12,7 +12,8 @@ import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
 import { ScatterplotLayer, TextLayer, ArcLayer, PolygonLayer } from "@deck.gl/layers";
 import type { Project, SourceEvent } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
-import { buildCampus, builtOpacity, campusScale, type CampusBlock } from "@/lib/campus";
+import { buildCampus, buildProgressChart, builtOpacity, campusScale, type CampusBlock, type ProgressRung } from "@/lib/campus";
+import { STAGE_COLORS } from "@/lib/theme";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
@@ -233,6 +234,19 @@ export function MapCanvas({
       const campusData: Array<{ p: Project; h: number; block: CampusBlock }> = [];
       for (const s of scored) for (const block of buildCampus(s.p, scale)) campusData.push({ p: s.p, h: s.h, block });
 
+      // progress staircases: the top-rank DCs, the selection, and its paired plant earn one
+      const chartIds = new Set<string>(topHot.map(({ p }) => p.id));
+      if (selectedId) {
+        chartIds.add(selectedId);
+        const pr = pairs.find((x) => x.dcId === selectedId || x.gasId === selectedId);
+        if (pr) { chartIds.add(pr.dcId); chartIds.add(pr.gasId); }
+      }
+      const chartData: Array<{ p: Project; h: number; rung: ProgressRung }> = [];
+      for (const s of scored) {
+        if (!chartIds.has(s.p.id)) continue;
+        for (const rung of buildProgressChart(s.p, scale)) chartData.push({ p: s.p, h: s.h, rung });
+      }
+
       overlay.setProps({
         layers: [
           // pairing tethers — the behind-the-meter story drawn as low power lines
@@ -296,6 +310,22 @@ export function MapCanvas({
             onHover: (info) =>
               onHover?.(info.object ? { project: info.object.p, heat: info.object.h, x: info.x, y: info.y } : null),
             updateTriggers: { getPolygon: scale, getElevation: scale, getFillColor: [selectedId, scale] },
+          }),
+          // progress as matter: stage-ladder staircases beside the hottest campuses
+          new PolygonLayer<{ p: Project; h: number; rung: ProgressRung }>({
+            id: "progress-charts",
+            data: chartData,
+            extruded: true,
+            material: MATERIAL,
+            getPolygon: (d) => d.rung.polygon,
+            // charts stay readable even at true-scale street zoom
+            getElevation: (d) => d.rung.height * Math.max(2.4, scale * 0.85),
+            getFillColor: (d) => {
+              if (!d.rung.achieved) return [120, 132, 148, 60];
+              const c = STAGE_COLORS[d.rung.rung];
+              return [c[0], c[1], c[2], d.rung.current ? 250 : 205] as [number, number, number, number];
+            },
+            updateTriggers: { getPolygon: scale, getElevation: scale },
           }),
           // ground anchors (readability at flat angles + generous click target)
           new ScatterplotLayer({

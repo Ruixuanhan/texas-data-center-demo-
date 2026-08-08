@@ -1,4 +1,4 @@
-# DESIGN.md — Radar/TX design system (Open Design convention)
+# DESIGN.md — Data Planner design system (Open Design convention)
 
 > Source of truth for tokens and visual law. Mirrored in `app/globals.css` (CSS custom properties),
 > `lib/theme.ts` + `lib/heat.ts` (engine-side values), Storybook foundations. Figma sync: post-demo,

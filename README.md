@@ -1,4 +1,4 @@
-# Radar/TX — live energy capex intelligence
+# Data Planner — live energy capex intelligence
 
 **Track 1 · Project Radar · Candid Intelligence Hackathon, Houston, 2026-08-08**
 

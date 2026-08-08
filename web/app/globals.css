@@ -17,6 +17,14 @@
   --signal-notable: #ffa163;
   --signal-major: #ff5d49;
   --live: #ffd8a8;
+  /* chrome surfaces — paper against the slate world (UI never wears the map's color) */
+  --paper: #ece5d6;
+  --paper-raise: #f3ede1;
+  --ink: #1d232e;
+  --ink-dim: rgba(29, 35, 46, 0.6);
+  --ink-faint: rgba(29, 35, 46, 0.38);
+  --paper-line: rgba(29, 35, 46, 0.14);
+  --ember-ink: #b95f24;
   --font-ui: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, "SF Mono", Menlo, monospace;
   --rail-w: 380px;

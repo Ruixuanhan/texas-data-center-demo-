@@ -6,9 +6,9 @@ const display = Fraunces({ subsets: ["latin"], weight: ["400", "600", "700"], st
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex" });
 
 export const metadata: Metadata = {
-  title: "Radar/TX — live energy project intelligence",
+  title: "Data Planner — live energy capex intelligence",
   description:
-    "Live map of Texas energy capital projects — interconnection queues, permits, dockets, and press stitched into one addictive screen.",
+    "Live map of energy capital projects — data centers, gas-to-power pairings, interconnection queues, permits, and press stitched into one addictive screen.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

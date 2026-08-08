@@ -1,4 +1,4 @@
-# Demo script — Radar/TX (~3 minutes)
+# Demo script — Data Planner (~3 minutes)
 
 Pre-flight (5 min before): simulator running (`doppler run -- bun scripts/simulate-feed.ts --live`),
 app open full-screen, sound off, network sanity-checked. Fallback: localhost + screen recording.

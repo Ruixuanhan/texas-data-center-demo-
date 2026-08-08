@@ -17,20 +17,20 @@ function Kpi({ label, value, unit, hot }: { label: string; value: string | numbe
   const prev = useRef<string | number>(value);
   useEffect(() => {
     if (prev.current !== value && ref.current) {
-      gsap.fromTo(ref.current, { scale: 1.14, color: "#ffd8a8" }, { scale: 1, color: hot ? "#ffa163" : "#ece7dd", duration: 0.7, ease: "power3.out", clearProps: "color" });
+      gsap.fromTo(ref.current, { scale: 1.14, color: "#b95f24" }, { scale: 1, duration: 0.7, ease: "power3.out", clearProps: "color" });
     }
     prev.current = value;
   }, [value, hot]);
   return (
     <div className="flex flex-col">
-      <span className="text-[9px] uppercase tracking-[0.22em] text-[var(--text-faint)]">{label}</span>
+      <span className="text-[9px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">{label}</span>
       <span
         ref={ref}
         className="inline-block origin-left text-[30px] leading-none tracking-tight"
-        style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600, color: hot ? "var(--signal-notable)" : "var(--text)" }}
+        style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600, color: hot ? "var(--ember-ink)" : "var(--ink)" }}
       >
         {value}
-        {unit && <span className="mono ml-1.5 text-[11px] font-normal tracking-normal text-[var(--text-dim)]">{unit}</span>}
+        {unit && <span className="mono ml-1.5 text-[11px] font-normal tracking-normal text-[var(--ink-dim)]">{unit}</span>}
       </span>
     </div>
   );
@@ -81,12 +81,15 @@ export default function Home() {
 
   return (
     <main className="flex flex-col" style={{ height: "100vh" }}>
-      <header ref={headerRef} className="z-20 flex items-end gap-12 border-b border-[var(--line)] px-6 pb-3 pt-3">
+      <header ref={headerRef} className="z-20 flex items-end gap-12 bg-[var(--paper)] px-6 pb-3 pt-3 shadow-[0_1px_0_var(--paper-line),0_8px_24px_rgba(10,15,22,0.35)]">
         <h1 data-intro className="flex flex-col leading-none">
-          <span style={{ fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic", fontWeight: 700 }} className="text-[22px] text-[var(--text)]">
-            Radar<span className="text-[var(--signal-notable)]">/</span>TX
+          {/* wordmark: upright/italic contrast pair + ember full stop — one voice, one gesture */}
+          <span className="whitespace-nowrap text-[23px] tracking-tight text-[var(--ink)]" style={{ fontFamily: "var(--font-display), Georgia, serif" }}>
+            <span style={{ fontWeight: 420 }}>Data</span>
+            <span style={{ fontWeight: 700, fontStyle: "italic" }}> Planner</span>
+            <span className="text-[var(--ember-ink)]" style={{ fontWeight: 700 }}>.</span>
           </span>
-          <span className="mono mt-1 text-[8.5px] uppercase tracking-[0.3em] text-[var(--text-faint)]">energy capex · early warning</span>
+          <span className="mono mt-1 text-[8.5px] uppercase tracking-[0.3em] text-[var(--ink-faint)]">energy capex · early warning</span>
         </h1>
         <div className="flex items-end gap-12">
           <div data-intro><Kpi label="Projects tracked" value={list.length} /></div>
@@ -95,8 +98,8 @@ export default function Home() {
           <div data-intro><Kpi label="BTM pairings" value={pairs.length} /></div>
           <div data-intro><Kpi label="Signals today" value={signalsToday} /></div>
         </div>
-        <span data-intro className="mono ml-auto flex items-center gap-2 pb-1 text-[10px] uppercase tracking-[0.25em] text-[var(--text-dim)]">
-          <span className={`live-dot inline-block h-1.5 w-1.5 rounded-full ${connected === "connecting" ? "bg-[var(--signal-notable)]" : "bg-[var(--live)]"}`} />
+        <span data-intro className="mono ml-auto flex items-center gap-2 pb-1 text-[10px] uppercase tracking-[0.25em] text-[var(--ink-dim)]">
+          <span className={`live-dot inline-block h-1.5 w-1.5 rounded-full ${connected === "connecting" ? "bg-[var(--signal-notable)]" : "bg-[var(--ember-ink)]"}`} />
           {connected === "connecting" ? "connecting" : "live"}
         </span>
       </header>
@@ -174,11 +177,12 @@ export default function Home() {
           </div>
         )}
 
-        {/* asset legend */}
-        <div className="mono pointer-events-none absolute bottom-14 right-6 z-10 flex items-center gap-5 text-[9px] uppercase tracking-[0.22em] text-[var(--text-faint)]">
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" /> data center</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--signal-notable)]" /> gas-to-power</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--signal-notable)] to-[var(--accent)]" /> btm pairing</span>
+        {/* asset legend — paper chip, never the map's color */}
+        <div className="mono pointer-events-none absolute bottom-14 right-6 z-10 flex items-center gap-5 border border-[var(--paper-line)] bg-[var(--paper)] px-3.5 py-2 text-[9px] uppercase tracking-[0.22em] text-[var(--ink-dim)] shadow-[0_10px_28px_rgba(10,15,22,0.4)]">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[#d98a4d]" /> data center</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--ember-ink)]" /> gas-to-power</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--ember-ink)] to-[#d98a4d]" /> btm pairing</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-1 bg-[var(--ink-faint)]" style={{ boxShadow: "3px 1px 0 var(--ink-dim), 6px 2px 0 var(--ember-ink)" }} /> stage steps</span>
         </div>
 
         <SignalTicker feed={feed} projects={projects} onSelect={setSelectedId} />

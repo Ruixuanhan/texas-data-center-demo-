@@ -3,7 +3,7 @@
 //   gas plant    → turbine hall + exhaust stack + switchyard block
 // Deterministic per slug (no jitter), generated in meters, scaled for the current zoom
 // so the assets stay sculptural at state view and true-to-scale at street view.
-import type { Project } from "./types";
+import { STAGE_LADDER, type Project, type Stage } from "./types";
 
 export interface CampusBlock {
   polygon: [number, number][];
@@ -62,6 +62,39 @@ export function buildCampus(p: Project, scale: number): CampusBlock[] {
 
 /** big sculptural presence at state view, true scale on fly-in */
 export const campusScale = (zoom: number) => Math.min(26, Math.max(1, 2 ** ((11.8 - zoom) * 0.82)));
+
+// ——— progress as matter (the ashMeteo move): an 8-rung staircase beside the campus,
+// one column per ladder stage, lit up to the project's current rung ———
+export interface ProgressRung {
+  polygon: [number, number][];
+  height: number;
+  rung: Stage;
+  achieved: boolean;
+  current: boolean;
+}
+
+export function buildProgressChart(p: Project, scale: number): ProgressRung[] {
+  if (p.lat == null || p.lon == null) return [];
+  const rnd = hash(p.slug + "::chart");
+  const ang = rnd() * Math.PI;
+  const idx = p.current_stage === "operational" || p.current_stage === "cod"
+    ? STAGE_LADDER.length - 1
+    : STAGE_LADDER.indexOf(p.current_stage);
+  const side = rnd() > 0.5 ? 1 : -1;
+  const w = 42, gap = 20, offBase = 320 * side;
+  return STAGE_LADDER.map((rung, i) => {
+    const along = (i - (STAGE_LADDER.length - 1) / 2) * (w + gap);
+    const cx = offBase * Math.cos(ang) - along * Math.sin(ang);
+    const cy = offBase * Math.sin(ang) + along * Math.cos(ang);
+    return {
+      polygon: toLL(p, rect(cx, cy, w, w, ang), scale),
+      height: 14 + i * 13,
+      rung,
+      achieved: idx >= 0 && i <= idx,
+      current: i === idx,
+    };
+  });
+}
 
 /** construction reality → material state (color stays money-temperature) */
 export const builtOpacity = (p: Project): number =>

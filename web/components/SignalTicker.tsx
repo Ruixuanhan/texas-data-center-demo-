@@ -21,7 +21,7 @@ export function SignalTicker({
     if (!ref.current || !latest) return;
     const tl = gsap.timeline();
     tl.fromTo(ref.current, { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: "power3.out" })
-      .fromTo(ref.current, { backgroundColor: "rgba(255,161,99,0.14)" }, { backgroundColor: "rgba(19,28,40,0.9)", duration: 1.4, ease: "power2.out" }, 0);
+      .fromTo(ref.current, { backgroundColor: "#ffd9b8" }, { backgroundColor: "#ece5d6", duration: 1.4, ease: "power2.out", clearProps: "backgroundColor" }, 0);
     return () => { tl.kill(); };
   }, [latest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -33,14 +33,14 @@ export function SignalTicker({
       <button
         ref={ref}
         onClick={() => latest.project_id && onSelect(latest.project_id)}
-        className={`pointer-events-auto flex max-w-[760px] items-center gap-3 border border-[var(--line)] bg-[rgba(19,28,40,0.9)] px-4 py-2 backdrop-blur-md ${latest.project_id ? "cursor-pointer hover:border-[var(--line-strong)]" : ""}`}
+        className={`pointer-events-auto flex max-w-[760px] items-center gap-3 border border-[var(--paper-line)] bg-[var(--paper)] px-4 py-2 shadow-[0_10px_28px_rgba(10,15,22,0.45)] ${latest.project_id ? "cursor-pointer hover:bg-[var(--paper-raise)]" : ""}`}
       >
-        <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--live)]" />
-        <span className="mono shrink-0 text-[9px] uppercase tracking-[0.2em]" style={{ color: `var(--signal-${latest.severity})` }}>
+        <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ember-ink)]" />
+        <span className="mono shrink-0 text-[9px] uppercase tracking-[0.2em]" style={{ color: latest.severity === "low" ? "var(--ink-dim)" : latest.severity === "major" ? "#c02f1d" : "var(--ember-ink)" }}>
           {SOURCE_LABELS[latest.source] ?? latest.source}
         </span>
-        <span className="truncate text-[12px] text-[var(--text)]">{latest.title}</span>
-        {project && <span className="mono hidden shrink-0 text-[9.5px] text-[var(--text-faint)] sm:block">{project.county} Co</span>}
+        <span className="truncate text-[12px] text-[var(--ink)]">{latest.title}</span>
+        {project && <span className="mono hidden shrink-0 text-[9.5px] text-[var(--ink-faint)] sm:block">{project.county} Co</span>}
       </button>
     </div>
   );
