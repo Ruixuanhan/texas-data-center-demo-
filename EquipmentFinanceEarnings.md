@@ -1,4 +1,4 @@
-# AI + Energy Hackathon Project Build Plan: Power Plant Intelligence & Order Collector
+# AI + Energy Hackathon Project Build Plan: Power Plant & Large Load (Data Center) Intelligence & Order Collector
 
 **Target Deployment:** Houston Museum District AI + Energy Hackathon (4-Hour Dev Window)  
 **Role:** Automated Web Data Ingestion & Earnings Intel Pipeline (Component of Large System)  
@@ -12,9 +12,10 @@
 Build an automated, scheduled data collection engine that continuously monitors web sources (press releases, project finance announcements, utility/developer earnings call transcripts, OEM/EPC press releases) for power plant developments across Texas.
 
 ### Focus Areas
-- **Primary:** Petroleum / Natural Gas Power Plants (Turbines, Peakers, Combined Cycle, Cogeneration, Carbon-Capture Integrated).
-- **Secondary:** Solar + Battery Storage (BESS), Geothermal, Wind, and Hybrid Power Plants.
-- **Key Data Extraction Targets:** Named project names, location/county, capacity (MW/GW), OEM equipment specs (GE Vernova, Siemens Energy, Mitsubishi Power), EPC contractors, CAPEX/financing figures, target commercial operation dates (COD), and ERCOT interconnection references.
+- **Power Generation (Suppliers):** Petroleum / Natural Gas Power Plants (Turbines, Peakers, Combined Cycle, Cogeneration), Solar + Battery Storage (BESS), Geothermal, Wind, and Nuclear/SMR.
+- **Large Power Users (Demand/Consumers):** AI Data Centers, Hyperscale Cloud Campuses, Crypto Mining Facilities, Industrial Electrolyzers/Hydrogen Hubs, Semiconductor Fabs, and Heavy Manufacturing/Refineries.
+- **Entity Classification & Categorization:** Explicit classification via `entity_category` field to immediately distinguish **Power Supply (Power Plant)** from **Power Demand (Large Electrical Power User)**.
+- **Key Data Extraction Targets:** Named project names, location/county, capacity (MW/GW), OEM equipment specs (GE Vernova, Siemens Energy, Nvidia, Supermicro, Caterpillar, Schneider Electric), EPC contractors, CAPEX/financing figures, target commercial operation dates (COD), and ERCOT interconnection references.
 
 ---
 
@@ -27,8 +28,9 @@ Build an automated, scheduled data collection engine that continuously monitors 
 5. **Incremental Storage & Deduplication:** Hashes URLs / content IDs to prevent re-processing identical source articles across scheduled runs.
 6. **Contact & Metadata Capture:** Extracts target contact person details including Name, Phone, Email, and source IP/Domain infrastructure metadata.
 7. **Entity Resolution & Shell Company Deduction:** Pattern-matches registered LLCs, SPCs, land contact persons, and parent entities to deduce true ultimate parent companies funding behind secretive power plant projects.
-8. **Source Data Weblink:** Record source weblink or other source data, so user can view source in browser as desired or needed.
-9. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
+8. **Power Generation vs. Large User Categorization:** Tracks both power generators and hyper-scale consumers (Data Centers, Crypto, Industrial Loads), flagging each record with dedicated schema fields (`entity_category`, `is_power_generation`, `is_large_power_user`) to separate supply vs. demand signals.
+9. **Source Data Weblink:** Record source weblink or other source data, so user can view source in browser as desired or needed.
+10. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
 10. **No Code Conflicts Guarantee:** Modular architecture separating Ingestion, Parsing, Storage, and Scheduling so team members working on OpenAI prompt pipelines or UI can integrate cleanly via JSONL schemas.
 
 ---
@@ -41,8 +43,9 @@ Build an automated, scheduled data collection engine that continuously monitors 
 - **Mitsubishi Power Americas:** Hydrogen-ready gas turbines and project finance updates.
 - **EPC Contractors:** Fluor, Bechtel, Burns & McDonnell, Kiewit, Zachry Group news feeds.
 
-### B. Earnings Call Transcripts & Developer News
+### B. Earnings Call Transcripts & Hyperscaler / Developer News
 - **Utilities & Power Producers (Texas Focus):** NRG Energy (NRG), Vistra Corp (VST), Constellation Energy (CEG), CenterPoint Energy (CNP), Entergy Texas (ETR), Calpine, Competitive Power Ventures (CPV).
+- **Large Electrical Power Users & Hyperscalers:** Amazon Web Services (AWS), Microsoft Azure, Google Cloud, Meta, Vantage Data Centers, QTS, CyrusOne, Equinix, CoreWeave, Applied Digital, Riot Platforms, Marathon Digital.
 - **Renewable & Hybrid Developers:** NextEra Energy Resources (NEE), AES Corporation (AES), Ormat Technologies (ORA - Geothermal), Plus Power, Invenergy.
 - **Financial & Regulatory Sources:** ERCOT Interconnection Queue announcements, Texas Military Department / PUCT press releases, PR Newswire / BusinessWire filtered feeds.
 
@@ -53,7 +56,7 @@ Build an automated, scheduled data collection engine that continuously monitors 
   - *Contact Info:* RRC Main Line: (877) 228-5740 | Docket Services Email: `Hearingsdivision.efile@rrc.texas.gov` | Office: 1701 N. Congress Ave, Austin, TX.
 - **County Commissioners' Court Agendas (Target Texas Energy Counties):**
   - *Focus Counties:* Harris, Fort Bend, Brazoria, Montgomery, Ector, Midland, Ward, Pecos, Nolan.
-  - *Filings Focus:* Chapter 312 tax abatement agreements, county road access permits, land development variances for utility-scale battery/peaker installations.
+  - *Filings Focus:* Chapter 312 tax abatement agreements, county road access permits, land development variances for utility-scale battery/peaker installations, AI hyperscale data center campuses, and high-density industrial substations.
   - *Cadence:* Published weekly on Thursdays by 5:00 PM CST (72-hour notice before Tuesday court sessions under TX Open Meetings Act).
   - *Contact Info:* County Clerk Offices / Public Notices Portal (e.g., Harris County Clerk: 713-755-6411; Fort Bend County Clerk: 281-341-8685).
 - **Municipal & Authority Permitting (City Planning & Zoning):**
@@ -141,6 +144,10 @@ Build an automated, scheduled data collection engine that continuously monitors 
   "source_url": "https://www.businesswire.com/news/home/20260115005123/en/",
   "ingested_at": "2026-08-08T12:00:00Z",
   "source_type": "Press Release / OEM",
+  "entity_category": "Power Generation",
+  "is_power_generation": true,
+  "is_large_power_user": false,
+  "facility_type": "Gas Peaker Plant",
   "company_name": "Vistra Corp / GE Vernova",
   "project_name": "Permian Basin Gas Peaker Expansion",
   "power_source": "Petroleum / Natural Gas (Simple Cycle)",
@@ -182,6 +189,56 @@ Build an automated, scheduled data collection engine that continuously monitors 
 }
 ```
 
+### Data Center / Large Electrical Power User JSON Schema Example
+```json
+{
+  "source_url": "https://www.prnewswire.com/news-releases/20260302/hyperscale-datacenter-campus-fort-bend.html",
+  "ingested_at": "2026-08-08T13:15:00Z",
+  "source_type": "County Abatement Filing / Press Release",
+  "entity_category": "Large Electrical Power User",
+  "is_power_generation": false,
+  "is_large_power_user": true,
+  "facility_type": "AI Data Center Campus",
+  "company_name": "CoreWeave / Vantage Data Centers",
+  "project_name": "Brazos Valley AI Gigawatt Hub",
+  "power_demand_mw": 1200,
+  "location_county": "Fort Bend County, TX",
+  "ercot_region": "Coast / Houston Zone",
+  "equipment_oem": "Nvidia GB200 NVL72 / Schneider Electric MV Switchgear",
+  "epc_contractor": "Bechtel",
+  "estimated_capex_usd": "$2.4 Billion",
+  "target_cod": "Q4 2026",
+  "raw_text_summary": "Fort Bend County Commissioners approved Chapter 312 abatement for a 1.2 GW AI Data Center campus with dedicated 345kV ERCOT substation interconnect...",
+  "source_data_weblink": "https://www.prnewswire.com/news-releases/20260302/hyperscale-datacenter-campus-fort-bend.html",
+  "source_ip_address": "198.51.100.12",
+  "data_source_cadence": "weekly_thursday_5pm",
+  "ground_level_signal": {
+    "jurisdiction_type": "County Commissioners' Court",
+    "governing_body": "Fort Bend County Commissioners' Court",
+    "filing_type": "Chapter 312 Tax Abatement & Substation Land Use Permit",
+    "official_contact": {
+      "office": "Fort Bend County Clerk",
+      "phone": "+1-281-341-8685",
+      "email": "cclerk@fortbendcountytx.gov"
+    }
+  },
+  "contact_persons": [
+    {
+      "name": "John Smith",
+      "title": "VP Infrastructure Strategy",
+      "phone": "+1-512-555-0188",
+      "email": "jsmith@coreweave.com"
+    }
+  ],
+  "entity_deduction": {
+    "disclosed_entity": "Brazos Data LLC",
+    "deduced_ultimate_parent": "CoreWeave",
+    "deduction_confidence": "HIGH",
+    "deduction_evidence": "Matching tax filing address and power purchase agreement (PPA) filed with CenterPoint Energy."
+  }
+}
+```
+
 ---
 
 ## 7. Direct Prompt Instructions for OpenAI Agent (To Code Implementation)
@@ -215,9 +272,10 @@ Please implement the Texas Power Plant Intelligence Data Collector tool in Pytho
    - PDF Extraction: Integrate `pdfplumber` and `pypdf` in `utils/parser.py` to extract text from downloadable PDF agenda packets and RRC hearing dockets.
    - Source Cadence: Support per-source scheduled intervals (e.g., RSS 15m, RRC Filings 24h, County Agendas weekly Thursday 5pm) and record source update cadences dynamically.
    - Ground-Level Early Signals: Scrape and parse early regulatory indicators from Railroad Commission of Texas (RRC CASES), County Commissioners' Court agendas (Chapter 312 tax abatements), and municipal permitting.
+   - Power Supply vs. Power User Classification: Track both Power Plants AND Extremely Large Electrical Power Users (AI Data Centers, Hyperscalers, Crypto Mining, Industrial Hubs). Include special schema fields in every record: `entity_category` ("Power Generation" | "Large Electrical Power User"), `is_power_generation` (boolean), `is_large_power_user` (boolean), and `facility_type` (e.g. "Gas Peaker Plant", "AI Data Center Campus", "Hydrogen Electrolyzer").
    - Contact & Shell Company Deduction: Parse contact person details (Name, Phone, Email, IP address) and implement parent-entity deduction to link shell LLCs to ultimate funding companies.
    - Weblinks & Metadata: Include `source_data_weblink` and server/source IP metadata in all exported records.
-   - Keyword Filters: Focus on Texas power plant developments across Petroleum/Gas, Solar+BESS, Geothermal, Wind, and Peakers. Companies: Vistra, NRG, CenterPoint, Constellation, GE Vernova, Siemens Energy, Mitsubishi, Entergy.
+   - Keyword Filters: Focus on Texas power developments across Petroleum/Gas, Solar+BESS, Geothermal, Wind, Peakers AND Large Power Users (Data Centers, Hyperscalers, Crypto, Industrial Load). Companies: Vistra, NRG, CenterPoint, Constellation, GE Vernova, Siemens Energy, Mitsubishi, AWS, CoreWeave, CyrusOne, QTS, Applied Digital, Riot Platforms.
    - Zero-conflict code: Ensure modular imports and clear exception handling so network failures do not break the continuous loop.
 
 Provide clean, production-ready Python scripts with docstrings and typing.
