@@ -20,12 +20,14 @@ Build an automated, scheduled data collection engine that continuously monitors 
 
 ## 2. Core Features & User Requirements
 
-1. **User-Settable Timer / Scheduler:** Configurable periodic execution loop (e.g., run every 15 mins, 1 hour, 6 hours, or manual trigger) using `APScheduler` or native `cron`.
+1. **User-Settable Timer & Source Cadence Engine:** Configurable periodic execution loop that tracks and respects individual source update cadences (e.g., RSS every 15 mins, press releases hourly, quarterly earnings logs) using `APScheduler`.
 2. **Automated Continuous Ingestion:** Automatically fetches, cleans, and appends new incoming data without overwriting or duplicating existing records.
-3. **Incremental Storage / Deduplication:** Hashes URLs / content IDs to prevent re-processing identical source articles across scheduled runs.
-4. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
-5. **No Code Conflicts Guarantee:** Modular architecture separating Ingestion, Parsing, Storage, and Scheduling so team members working on OpenAI prompt pipelines or UI can integrate cleanly via JSONL schemas.
+3. **Incremental Storage & Deduplication:** Hashes URLs / content IDs to prevent re-processing identical source articles across scheduled runs.
+4. **Contact & Metadata Capture:** Extracts target contact person details including Name, Phone, Email, and source IP/Domain infrastructure metadata.
+5. **Entity Resolution & Shell Company Deduction:** Pattern-matches registered LLCs, SPCs, land contact persons, and parent entities to deduce true ultimate parent companies funding behind secretive power plant projects.
 6. **Source Data Weblink:** Record source weblink or other source data, so user can view source in browser as desired or needed.
+7. **OpenAI Agent Friendly Output Schema:** Outputs standardized, structured JSONL and clean Markdown summary files designed for direct ingestion into downstream OpenAI Assistants API / custom GPT / RAG vector stores.
+8. **No Code Conflicts Guarantee:** Modular architecture separating Ingestion, Parsing, Storage, and Scheduling so team members working on OpenAI prompt pipelines or UI can integrate cleanly via JSONL schemas.
 
 ---
 
@@ -43,6 +45,15 @@ Build an automated, scheduled data collection engine that continuously monitors 
 - **Financial & Regulatory Sources:** ERCOT Interconnection Queue announcements, Texas Military Department / PUCT press releases, PR Newswire / BusinessWire filtered feeds.
 
 ---
+
+
+
+### C. Cadence & Dynamic Frequency Tracking
+- **PR Newswire / BusinessWire RSS:** Update Cadence: ~15-30 minutes.
+- **OEM Press Rooms (GE Vernova, Siemens):** Update Cadence: Hourly / Daily.
+- **SEC / Earnings Call Transcripts:** Update Cadence: On release / Daily sweep.
+- **PUCT / ERCOT Interconnection Queue Filings:** Update Cadence: Daily / Weekly queue snapshots.
+- **Scheduler Logic:** Dynamic cadence module polls each registered source according to its specific recorded update cadence rather than a single monolithic timer.
 
 ## 4. Technical Stack & Modular Architecture
 
@@ -118,7 +129,24 @@ Build an automated, scheduled data collection engine that continuously monitors 
   "epc_contractor": "Burns & McDonnell",
   "estimated_capex_usd": "$650 Million",
   "target_cod": "Q2 2027",
-  "raw_text_summary": "Vistra Corp announced order for three GE Vernova gas turbines to support industrial grid growth in West Texas..."
+  "raw_text_summary": "Vistra Corp announced order for three GE Vernova gas turbines to support industrial grid growth in West Texas...",
+  "source_data_weblink": "https://www.businesswire.com/news/home/20260115005123/en/",
+  "source_ip_address": "192.0.2.45",
+  "data_source_cadence": "30_minutes",
+  "contact_persons": [
+    {
+      "name": "Jane Doe",
+      "title": "Media Relations / Project Finance",
+      "phone": "+1-713-555-0199",
+      "email": "j.doe@vistracorp.com"
+    }
+  ],
+  "entity_deduction": {
+    "disclosed_entity": "Lone Star Energy Ventures LLC",
+    "deduced_ultimate_parent": "Vistra Corp",
+    "deduction_confidence": "HIGH",
+    "deduction_evidence": "Contact email domain matches parent corp; matched registered agent and turbine purchase agreement references."
+  }
 }
 ```
 
@@ -151,6 +179,9 @@ Please implement the Texas Power Plant Intelligence Data Collector tool in Pytho
    - Continuous background running mode that executes collection on schedule.
    - Deduplication: Maintain an SQLite database (`data/collector.db`) tracking hashed article URLs. Never append duplicate records.
    - Outputs: Append newly collected data into `output/power_plants_feed.jsonl` and auto-generate an updated `output/digest.md`.
+   - Source Cadence: Support per-source scheduled intervals (e.g., RSS 15m, Earnings 24h) and record source update cadences dynamically.
+   - Contact & Shell Company Deduction: Parse contact person details (Name, Phone, Email, IP address) and implement parent-entity deduction to link shell LLCs to ultimate funding companies.
+   - Weblinks & Metadata: Include `source_data_weblink` and server/source IP metadata in all exported records.
    - Keyword Filters: Focus on Texas power plant developments across Petroleum/Gas, Solar+BESS, Geothermal, Wind, and Peakers. Companies: Vistra, NRG, CenterPoint, Constellation, GE Vernova, Siemens Energy, Mitsubishi, Entergy.
    - Zero-conflict code: Ensure modular imports and clear exception handling so network failures do not break the continuous loop.
 
