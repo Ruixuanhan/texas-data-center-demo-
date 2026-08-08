@@ -20,9 +20,9 @@ Project Radar is an **evidence-backed project-intelligence application** for Tex
 
 ```text
 Committed source snapshots
-  ├── texas_datacenter_projects.csv      (Cleanview-derived data-center projects)
+  ├── texas_datacenter_projects.csv      (Cleanview-derived data-center projects - July 2026)
   ├── data/fixtures/ercot_gis_july_2026.xlsx
-  └── cleanview_gas_plants.csv           (Cleanview-derived planned gas capacity)
+  └── cleanview_gas_plants.csv           (Cleanview-derived planned gas capacity - July 2026)
                  │
                  ▼
 Python ingestion adapters → SQLite / PostgreSQL evidence graph
