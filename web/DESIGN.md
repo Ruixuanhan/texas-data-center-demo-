@@ -6,7 +6,7 @@
 
 ## The direction
 
-**Textured typographic cartography with an investor lens.** Not a dashboard — a theater.
+**Textured typographic cartography with an investor lens.** Not a dashboard — a theater. v2 (la-phase-5 baseline): dusk-chroma slate world, the tracked assets as the ONLY 3D matter (server halls, plant stacks — never generic buildings), hover-first information surface, GSAP as the motion system.
 The map is the interface; chrome exists only to frame signal. Lineage: monitor-the-situation's
 watchability, ashMeteo's data-as-matter and camera-as-narrator, wc26/FT's editorial restraint,
 Geolava's austere domain credibility.
@@ -28,14 +28,15 @@ Geolava's austere domain credibility.
 ### Color
 | Token | Value | Role |
 |---|---|---|
-| `--bg` | `#0a0e13` | theater black (warm-shifted) |
-| `--bg-raise` / `--bg-panel` | `#0e131a` / `#131a23` | overlay inks |
-| `--line` / `--line-strong` | `rgba(224,210,187,.09/.18)` | warm hairlines — never solid borders |
-| `--text` / `--text-dim` / `--text-faint` | `#e9e4da` / `#9a958a` / `#5f5c54` | warm paper text ramp |
-| `--accent` / `--signal-notable` | `#ffb454` | ember — notable signal, brand accent |
+| `--bg` | `#131c28` | slate-blue ink |
+| `--bg-raise` / `--bg-panel` | `#16202d` / `#1a2534` | overlay inks |
+| `--line` / `--line-strong` | `rgba(226,232,244,.10/.20)` | cool hairlines — never solid borders |
+| `--text` / `--text-dim` / `--text-faint` | `#ece7dd` / `#a3a49f` / `#67707c` | warm paper text ramp |
+| `--accent` | `#f2c49b` | peach — the asset material |
+| `--signal-notable` | `#ffa163` | ember — notable signal |
 | `--signal-major` | `#ff5d49` | stage calls, majors |
 | `--live` | `#ffd8a8` | liveness indicator |
-| heat ramp | `#38485c → #346c7a → #dea83e → #ff8954 → #ffd8a8 → #fff7ea` | `lib/heat.ts` RAMP — money temperature |
+| heat ramp | `#5c6a79 → #93887e → #f2c49b → #ffa163 → #ffd8a8 → #fff7ea` | `lib/heat.ts` RAMP — money temperature (+0.08 BTM pairing bonus) |
 | stage ramp | `lib/theme.ts` STAGE_COLORS | dossier ladder + badges only |
 
 ### Type
@@ -48,9 +49,12 @@ Geolava's austere domain credibility.
 Scale: masthead 22 · KPI 30 · dossier title 21 · body 13 · data 10–11 · microcaps 8.5–9.5 with `0.18–0.3em` tracking, uppercase.
 
 ### Map texture recipe
-Carto dark-matter-nolabels, land re-inked `#10161e`, water `#060a10` · Terrarium DEM hillshade
-(exaggeration 0.8, shadow `#04070b`) · TX county hairlines `rgba(214,196,161,.10)` · vignette
-`radial 52%→rgba(3,5,8,.62)` · SVG grain overlay at 5% (blend: overlay) · camera pitch 44°, bearing −9°.
+Carto dark-matter-nolabels re-inked: water `#0f2230`, land `#26303a`, parks sage `#22332f`, white
+street hairlines (majors `rgba(226,234,246,.34)`) · Terrarium hillshade tuned to slate · county
+activity wash (peach fill-opacity by county MW) · dusk sky gradient + vignette + 5% grain · camera
+pitch 44°, bearing −9° · assets as procedural campuses (`lib/campus.ts`): DC server-hall rows,
+gas turbine-hall+stack+switchyard; zoom-scaled (sculptural far, true near); built=solid,
+construction=warm, pre-FID=ghosted 55%.
 
 ### Motion
 | Move | Spec |
@@ -62,6 +66,7 @@ Carto dark-matter-nolabels, land re-inked `#10161e`, water `#060a10` · Terrariu
 | intro flight | 3.2s zoom 4.3/flat → 5.55/pitch 44 |
 | select flight | zoom 8.0, pitch 52, bearing −18, speed .85 |
 | stage chyron | slide-up 0.5s, major-red spine |
+| GSAP vocabulary | masthead/ops staggered entrances · KPI tick pulse · dossier beat stagger (power3/power2, back.out for hover card) · ticker slide+ember flash |
 
 ## Components (Storybook)
 Foundations · StageBadge · SeverityTag · SourceChip · ConfidenceMeter · RelativeTime · KpiStat ·

@@ -9,9 +9,10 @@ import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, setWorkerUrl, type IControl } from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
-import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, TextLayer, ArcLayer, PolygonLayer } from "@deck.gl/layers";
 import type { Project, SourceEvent } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
+import { buildCampus, builtOpacity, campusScale, type CampusBlock } from "@/lib/campus";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
@@ -70,6 +71,8 @@ const arcOrigin = (e: SourceEvent, p: Project): [number, number] => {
 interface LiveArc { id: string; event: SourceEvent; project: Project; bornAt: number }
 const ARC_TTL = 8000;
 
+export interface HoverInfo { project: Project; heat: number; x: number; y: number }
+
 export function MapCanvas({
   projects,
   projectIndex,
@@ -79,6 +82,7 @@ export function MapCanvas({
   pairedIds,
   selectedId,
   onSelect,
+  onHover,
 }: {
   projects: Project[];
   projectIndex: Map<string, Project>;
@@ -88,14 +92,36 @@ export function MapCanvas({
   pairedIds: Set<string>;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onHover?: (info: HoverInfo | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const frameRef = useRef<number>(0);
   const arcsRef = useRef<LiveArc[]>([]);
   const arcSeen = useRef<Set<string>>(new Set());
+  const countyWashRef = useRef<(() => void) | null>(null);
   const stateRef = useRef({ projects, projectIndex, feed, hot, pairs, pairedIds, selectedId });
   stateRef.current = { projects, projectIndex, feed, hot, pairs, pairedIds, selectedId };
+
+  // data-driven county warmth: counties glow faintly with the MW they carry
+  useEffect(() => {
+    const apply = () => {
+      const map = mapRef.current;
+      if (!map || !map.getLayer("county-heat")) return;
+      const mwByCounty = new Map<string, number>();
+      for (const p of projects) {
+        if (!p.county) continue;
+        mwByCounty.set(p.county, (mwByCounty.get(p.county) ?? 0) + (p.capacity_mw ?? 20));
+      }
+      if (mwByCounty.size === 0) return;
+      const expr: unknown[] = ["match", ["get", "NAME"]];
+      for (const [county, mw] of mwByCounty) expr.push(county, +(0.035 + Math.min(0.1, (mw / 600) * 0.1)).toFixed(3));
+      expr.push(0);
+      map.setPaintProperty("county-heat", "fill-opacity", expr as never);
+    };
+    countyWashRef.current = apply;
+    apply();
+  }, [projects]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -114,12 +140,13 @@ export function MapCanvas({
     mapRef.current = map;
 
     map.on("load", () => {
-      // ——— world re-ink: slate-blue ground, darker water, white hairline streets ———
+      // ——— world re-ink: dusk chroma — teal water, warm-slate land, sage green space ———
       try {
         for (const layer of map.getStyle().layers ?? []) {
-          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#141d29");
-          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#101a26");
-          else if (layer.type === "fill" && /land|park|green|residential/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#1d2937");
+          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#182230");
+          if (layer.type === "fill" && /water|ocean/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#0f2230");
+          else if (layer.type === "fill" && /park|green|wood|grass/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#22332f");
+          else if (layer.type === "fill" && /land|residential/i.test(layer.id)) map.setPaintProperty(layer.id, "fill-color", "#26303a");
           if (layer.type === "line") {
             const road = /road|street|highway|motorway|trunk|primary|secondary|tertiary|minor|path|rail|transit/i.test(layer.id);
             const boundary = /admin|boundary|border/i.test(layer.id);
@@ -148,14 +175,20 @@ export function MapCanvas({
         source: "dem",
         paint: {
           "hillshade-exaggeration": 0.75,
-          "hillshade-shadow-color": "#0a121c",
-          "hillshade-highlight-color": "#33455c",
-          "hillshade-accent-color": "#1c2836",
+          "hillshade-shadow-color": "#0c1520",
+          "hillshade-highlight-color": "#46536b",
+          "hillshade-accent-color": "#2a3242",
         },
       });
 
-      // ——— county hairlines ———
+      // ——— counties: activity wash (data-driven warmth) under hairlines ———
       map.addSource("counties", { type: "geojson", data: "/tx-counties.json" });
+      map.addLayer({
+        id: "county-heat",
+        type: "fill",
+        source: "counties",
+        paint: { "fill-color": "#f2c49b", "fill-opacity": 0 },
+      });
       map.addLayer({
         id: "county-lines",
         type: "line",
@@ -165,23 +198,10 @@ export function MapCanvas({
           "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 8, 0.9],
         },
       });
+      countyWashRef.current?.(); // apply wash if projects already arrived
 
-      // ——— the la-phase-5 moment: peach building mass appears on deep fly-in ———
-      try {
-        map.addLayer({
-          id: "buildings-3d",
-          type: "fill-extrusion",
-          source: "carto",
-          "source-layer": "building",
-          minzoom: 11.5,
-          paint: {
-            "fill-extrusion-color": "#f2c49b",
-            "fill-extrusion-height": ["coalesce", ["get", "render_height"], 13],
-            "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-            "fill-extrusion-opacity": 0.92,
-          },
-        });
-      } catch (e) { console.warn("building extrusion layer unavailable", e); }
+      // NOTE: no generic building/landuse extrusions — the only 3D matter on this map
+      // is the tracked assets themselves (data-center halls, plant stacks). Geography stays flat.
 
       map.flyTo({ ...HOME, duration: 3200, essential: true });
     });
@@ -208,20 +228,10 @@ export function MapCanvas({
       }
       arcsRef.current = arcsRef.current.filter((a) => now - a.bornAt < ARC_TTL);
 
-      const columnShared = {
-        pickable: true,
-        extruded: true,
-        material: MATERIAL,
-        getElevation: ({ p }: { p: Project }) => 2500 + Math.sqrt(p.capacity_mw ?? 6) * 3400,
-        getFillColor: ({ p, h }: { p: Project; h: number }) => {
-          const c = heatColor(h);
-          const alpha = p.id === selectedId ? 255 : hot.has(p.id) ? 245 : 215;
-          return [c[0], c[1], c[2], alpha] as [number, number, number, number];
-        },
-        onClick: (info: { object?: { p: Project } }) => onSelect(info.object ? info.object.p.id : null),
-        updateTriggers: { getFillColor: [selectedId, hot] },
-        transitions: { getElevation: { duration: 900, easing: (x: number) => 1 - (1 - x) ** 3 } },
-      } as const;
+      // asset architecture: campuses regenerate as the camera zooms (sculptural far, true-scale near)
+      const scale = campusScale(map.getZoom());
+      const campusData: Array<{ p: Project; h: number; block: CampusBlock }> = [];
+      for (const s of scored) for (const block of buildCampus(s.p, scale)) campusData.push({ p: s.p, h: s.h, block });
 
       overlay.setProps({
         layers: [
@@ -262,10 +272,31 @@ export function MapCanvas({
             radiusUnits: "meters",
             updateTriggers: { getRadius: t, getLineColor: t },
           }),
-          // data centers — lit cylinders
-          new ColumnLayer({ id: "dc-columns", data: dcs, diskResolution: 20, radius: 5200, ...columnShared }),
-          // gas plants — 4-sided obelisks, rotated: a different silhouette for a different asset
-          new ColumnLayer({ id: "gas-columns", data: gas, diskResolution: 4, angle: 45, radius: 4300, ...columnShared }),
+          // the assets themselves as sculpted matter — server halls, stacks, switchyards
+          new PolygonLayer<{ p: Project; h: number; block: CampusBlock }>({
+            id: "campuses",
+            data: campusData,
+            pickable: true,
+            extruded: true,
+            material: MATERIAL,
+            autoHighlight: true,
+            highlightColor: [255, 242, 224, 70],
+            getPolygon: (d) => d.block.polygon,
+            getElevation: (d) => d.block.height * Math.max(1, scale * 0.85),
+            getFillColor: (d) => {
+              const c = heatColor(d.block.kind === "stack" ? Math.min(1, d.h + 0.12) : d.h);
+              const alpha = d.p.id === selectedId ? 250 : builtOpacity(d.p);
+              return [c[0], c[1], c[2], alpha] as [number, number, number, number];
+            },
+            getLineColor: [16, 24, 34, 255],
+            getLineWidth: 1,
+            lineWidthUnits: "pixels",
+            stroked: false,
+            onClick: (info) => onSelect(info.object ? info.object.p.id : null),
+            onHover: (info) =>
+              onHover?.(info.object ? { project: info.object.p, heat: info.object.h, x: info.x, y: info.y } : null),
+            updateTriggers: { getPolygon: scale, getElevation: scale, getFillColor: [selectedId, scale] },
+          }),
           // ground anchors (readability at flat angles + generous click target)
           new ScatterplotLayer({
             id: "anchors",
@@ -281,6 +312,7 @@ export function MapCanvas({
             lineWidthUnits: "pixels",
             stroked: true,
             onClick: (info) => onSelect(info.object ? (info.object as { p: Project }).p.id : null),
+            onHover: (info) => onHover?.(info.object ? { project: (info.object as { p: Project; h: number }).p, heat: (info.object as { p: Project; h: number }).h, x: info.x, y: info.y } : null),
             updateTriggers: { getFillColor: [selectedId], getLineColor: selectedId, getLineWidth: selectedId },
           }),
           // regions — quiet spaced caps, the cartographic undertone
@@ -379,7 +411,11 @@ export function MapCanvas({
       {/* maplibre-gl.css sets .maplibregl-map{position:relative} which beats the Tailwind
           class (later import, same specificity) — inline styles win, hence this wrapper. */}
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-      {/* texture: grain + vignette above tiles, below UI */}
+      {/* texture: dusk sky wash + grain + vignette above tiles, below UI */}
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(180deg, rgba(96,88,138,0.12) 0%, rgba(255,154,90,0.055) 20%, transparent 44%)",
+      }} />
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: "radial-gradient(120% 95% at 46% 42%, transparent 52%, rgba(8,12,18,0.6) 100%)",

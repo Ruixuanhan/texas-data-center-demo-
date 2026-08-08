@@ -1,6 +1,7 @@
 "use client";
 // The killer interaction: one project's entire stitched story on one screen.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { supabase } from "@/lib/supabase";
 import {
   SOURCE_LABELS, STAGE_LABELS, STAGE_LADDER,
@@ -26,6 +27,21 @@ export function ProjectDossier({
   const [aliases, setAliases] = useState<ProjectAlias[]>([]);
   const [events, setEvents] = useState<SourceEvent[]>([]);
   const [history, setHistory] = useState<StageHistoryRow[]>([]);
+  const secRef = useRef<HTMLElement>(null);
+
+  // designed entrance: panel slides in, story beats stagger down the page
+  useEffect(() => {
+    if (!secRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(secRef.current, { x: -36, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power3.out" });
+      gsap.fromTo(
+        secRef.current!.querySelectorAll("[data-beat]"),
+        { y: 14, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: 0.45, stagger: 0.06, delay: 0.12, ease: "power2.out" },
+      );
+    });
+    return () => ctx.revert();
+  }, [projectId]);
 
   useEffect(() => {
     const db = supabase();
@@ -50,10 +66,11 @@ export function ProjectDossier({
 
   return (
     <section
-      className="absolute inset-y-0 left-0 z-10 flex w-[480px] max-w-full flex-col border-r border-[var(--line)] bg-[var(--bg)]/95 backdrop-blur"
+      ref={secRef}
+      className="absolute inset-y-0 left-0 z-10 flex w-[480px] max-w-full flex-col border-r border-[var(--line)] bg-[var(--bg)]/95 opacity-0 backdrop-blur"
       aria-label={`Dossier: ${project.name}`}
     >
-      <header className="border-b border-[var(--line)] px-5 py-4">
+      <header data-beat className="border-b border-[var(--line)] px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 style={{ fontFamily: "var(--font-display), Georgia, serif", fontWeight: 600 }} className="text-[21px] leading-tight text-[var(--text)]">
@@ -96,8 +113,8 @@ export function ProjectDossier({
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {/* Stage ladder */}
-        <h3 className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Stage inference</h3>
-        <div className="mb-1 flex items-center gap-1">
+        <h3 data-beat className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Stage inference</h3>
+        <div data-beat className="mb-1 flex items-center gap-1">
           {STAGE_LADDER.map((s, i) => (
             <div key={s} className="group relative flex-1">
               <div
@@ -113,12 +130,12 @@ export function ProjectDossier({
             </div>
           ))}
         </div>
-        <div className="mb-4 mt-5 flex items-center justify-between">
+        <div data-beat className="mb-4 mt-5 flex items-center justify-between">
           <StageBadge stage={project.current_stage} />
           {project.stage_confidence != null && <ConfidenceMeter value={project.stage_confidence} />}
         </div>
         {history.length > 0 && (
-          <ol className="mb-5 space-y-1.5 border-l border-[var(--line)] pl-3">
+          <ol data-beat className="mb-5 space-y-1.5 border-l border-[var(--line)] pl-3">
             {history.map((h) => (
               <li key={h.id} className="text-[12px]">
                 <span className="mono" style={{ color: stageHex(h.stage as Stage) }}>{STAGE_LABELS[h.stage]}</span>
@@ -132,8 +149,8 @@ export function ProjectDossier({
         {/* Alias cluster — entity resolution made visible */}
         {aliases.length > 0 && (
           <>
-            <h3 className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Resolved identities</h3>
-            <div className="mb-5 flex flex-wrap gap-1.5">
+            <h3 data-beat className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">Resolved identities</h3>
+            <div data-beat className="mb-5 flex flex-wrap gap-1.5">
               <span className="mono rounded-sm bg-[var(--bg-panel)] px-2 py-1 text-[11px] text-[var(--text)]">{project.name}</span>
               {aliases.map((a) => (
                 <span key={a.id} className="mono rounded-sm border border-dashed border-[var(--line-strong)] px-2 py-1 text-[11px] text-[var(--text-dim)]">
@@ -149,7 +166,7 @@ export function ProjectDossier({
         <h3 className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--text-faint)]">
           Source record · {events.length} filings
         </h3>
-        <ol className="space-y-3">
+        <ol data-beat className="space-y-3">
           {events.map((e) => (
             <li key={e.id} className="border-l-2 pl-3" style={{ borderColor: `var(--signal-${e.severity})` }}>
               <div className="flex items-center gap-2">
