@@ -13,14 +13,15 @@ import { Map as MapLibreMap, setWorkerUrl, type IControl } from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
 import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PolygonLayer } from "@deck.gl/layers";
-import { ScenegraphLayer } from "@deck.gl/mesh-layers";
+import { ScenegraphLayer, SimpleMeshLayer } from "@deck.gl/mesh-layers";
+import { CubeGeometry } from "@luma.gl/engine";
 import { GLTFLoader } from "@loaders.gl/gltf";
 import { CollisionFilterExtension } from "@deck.gl/extensions";
 import type { Project, SourceEvent } from "@/lib/types";
 import { STAGE_LADDER } from "@/lib/types";
 import { heatColor, heatScore, type Pair } from "@/lib/heat";
 import { buildCampus, type CampusBlock } from "@/lib/campus";
-import { WORLD } from "@/lib/theme";
+import { STAGE_COLORS, WORLD } from "@/lib/theme";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Turbopack dev can't resolve maplibre's module-worker URL; serve the dist worker statically.
@@ -82,9 +83,12 @@ const ARC_TTL = 8000;
 // The zoom is an illusion: one fixed diorama scale everywhere — assets and beams keep
 // constant world size, legible at the wide view and simply framed larger on approach.
 const ASSET_SCALE = 260;
-const BEAM_MAX_H = 90000;   // meters at full COD progress — always clears the tallest stack
-const BEAM_GLOW_R = 3400;
-const BEAM_CORE_R = 1100;
+// Stage tower: the ladder as 8 COUNTABLE segments (ordinal data wants discrete steps —
+// Munzner/Mackinlay channel ranking; segmented > continuous for staged processes).
+// Each lit segment wears its own rung color = the same ladder the dossier and hover card use.
+const SEG = { w: 2400, h: 2900, gap: 1050, base: 1200, eastOffsetM: 5200 };
+const CUBE = new CubeGeometry();
+const GHOST_RUNG: [number, number, number, number] = [126, 138, 154, 60];
 const PEACH: [number, number, number] = [242, 196, 155];
 // buildings are constant light-peach matter (la-phase-5 monomaterial) — heat lives in
 // beams, anchors, and labels, never in the architecture, so buildings always read clean
@@ -373,33 +377,37 @@ export function MapCanvas({
             updateTriggers: { getRadius: t, getLineColor: t },
           }),
           ...assetLayers,
-          // PROGRESS AS LIGHT — a beam rising from each asset; height = ladder progress.
-          // Soft outer glow + bright core, so the building and its trajectory are one object.
-          new ColumnLayer<{ p: Project; h: number }>({
-            id: "beam-glow",
-            data: scored.filter(({ p }) => p.current_stage !== "canceled"),
-            diskResolution: 10,
-            radius: BEAM_GLOW_R,
-            extruded: true,
-            getPosition: ({ p }) => [p.lon!, p.lat!],
-            getElevation: ({ p }) => BEAM_MAX_H * progressFrac(p),
-            getFillColor: ({ p, h }) => [...heatColor(h), p.id === selectedId ? 90 : 48] as never,
-            updateTriggers: { getFillColor: [selectedId] },
-          }),
-          new ColumnLayer<{ p: Project; h: number }>({
-            id: "beam-core",
-            data: scored.filter(({ p }) => p.current_stage !== "canceled"),
-            diskResolution: 10,
-            radius: BEAM_CORE_R,
-            extruded: true,
-            getPosition: ({ p }) => [p.lon!, p.lat!],
-            getElevation: ({ p }) => BEAM_MAX_H * progressFrac(p),
-            getFillColor: ({ p, h }) => {
-              const c = p.id === selectedId ? [255, 250, 240] : [255, 238, 210];
-              return [c[0], c[1], c[2], p.id === selectedId ? 235 : 165] as never;
+          // PROGRESS AS ARCHITECTURE — the stage tower: 8 discrete segments beside each
+          // asset; lit segments carry their rung's ladder color, the current rung burns
+          // brightest, unreached rungs stand as ghosts. Count the blocks, read the stage.
+          new SimpleMeshLayer<{ p: Project; h: number; i: number; lit: boolean; current: boolean }>({
+            id: "stage-towers",
+            data: scored
+              .filter(({ p }) => p.current_stage !== "canceled")
+              .flatMap(({ p, h }) => {
+                const idx = p.current_stage === "operational" || p.current_stage === "cod"
+                  ? STAGE_LADDER.length - 1
+                  : STAGE_LADDER.indexOf(p.current_stage);
+                return STAGE_LADDER.map((_, i) => ({ p, h, i, lit: idx >= 0 && i <= idx, current: i === idx }));
+              }),
+            mesh: CUBE,
+            getPosition: ({ p, i }) => [
+              p.lon! + SEG.eastOffsetM / (111320 * Math.cos((p.lat! * Math.PI) / 180)),
+              p.lat!,
+              SEG.base + i * (SEG.h + SEG.gap) + SEG.h / 2,
+            ],
+            getScale: [SEG.w / 2, SEG.w / 2, SEG.h / 2],
+            getColor: (d) => {
+              const inFocus = !selectedId || d.p.id === selectedId || pairs.some((x) => (x.dcId === selectedId && x.gasId === d.p.id) || (x.gasId === selectedId && x.dcId === d.p.id));
+              if (!inFocus) return [126, 138, 154, 12];
+              if (!d.lit) return GHOST_RUNG;
+              const c = STAGE_COLORS[STAGE_LADDER[d.i]];
+              return [c[0], c[1], c[2], d.current ? 255 : 215];
             },
-            updateTriggers: { getFillColor: [selectedId] },
+            material: MATERIAL,
+            updateTriggers: { getColor: [selectedId] },
           }),
+          // ground anchors
           // ground anchors (small-zoom click targets)
           new ScatterplotLayer({
             id: "anchors",

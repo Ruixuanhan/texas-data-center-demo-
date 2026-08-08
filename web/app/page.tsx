@@ -169,7 +169,11 @@ export default function Home() {
           <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" /> data center</span>
           <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rotate-45 bg-[var(--signal-notable)]" /> gas-to-power</span>
           <span className="flex items-center gap-1.5"><span className="inline-block h-px w-5 bg-gradient-to-r from-[var(--signal-notable)] to-[var(--accent)]" /> btm pairing</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-[3px] rounded-full bg-[var(--live)]" /> progress beam</span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex flex-col-reverse gap-[1.5px]">
+              <span className="h-[3px] w-2 bg-[#6ea8fe]" /><span className="h-[3px] w-2 bg-[#3ddad7]" /><span className="h-[3px] w-2 bg-[rgba(126,138,154,0.4)]" />
+            </span>
+            stage tower · lit = reached</span>
         </div>
 
       </div>
