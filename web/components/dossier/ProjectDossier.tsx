@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { supabase } from "@/lib/supabase";
+import { RADAR_API_URL, radarFetch } from "@/lib/api";
 import {
   SOURCE_LABELS, STAGE_LABELS, STAGE_LADDER,
   type Project, type ProjectAlias, type SourceEvent, type StageHistoryRow, type Stage,
@@ -10,6 +11,13 @@ import {
 import { stageHex } from "@/lib/theme";
 import { heatHex, heatScore, whyItMatters } from "@/lib/heat";
 import { ConfidenceMeter, RelativeTime, SeverityTag, StageBadge } from "@/components/atoms";
+
+interface ProjectDossierPayload {
+  project: Project;
+  events: SourceEvent[];
+  stage_history: StageHistoryRow[];
+  aliases: ProjectAlias[];
+}
 
 export function ProjectDossier({
   projectId,
@@ -44,9 +52,18 @@ export function ProjectDossier({
   }, [projectId]);
 
   useEffect(() => {
-    const db = supabase();
     let live = true;
     (async () => {
+      if (RADAR_API_URL) {
+        const dossier = await radarFetch<ProjectDossierPayload>(`/api/v1/radar/projects/${projectId}`);
+        if (!live) return;
+        setAliases(dossier.aliases);
+        setEvents(dossier.events);
+        setHistory(dossier.stage_history);
+        return;
+      }
+
+      const db = supabase();
       const [a, e, h] = await Promise.all([
         db.from("project_aliases").select("*").eq("project_id", projectId),
         db.from("source_events").select("*").eq("project_id", projectId).order("occurred_at", { ascending: false }).limit(40),
